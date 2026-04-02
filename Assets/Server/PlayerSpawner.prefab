@@ -45,4 +45,4 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PlayerSpawner
   playerPrefab:
-    RawGuidValue: 00000000000000000000000000000000
+    RawGuidValue: 834c282afce20cd4cb84401337e727f7
