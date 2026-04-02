@@ -229,6 +229,18 @@ PrefabInstance:
     - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: f1e8e1bfafe7fa241ba6b4181f3eba85, type: 3}
       insertIndex: -1
       addedObject: {fileID: 4486338045924145566}
+    - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: f1e8e1bfafe7fa241ba6b4181f3eba85, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 3095170865833391435}
+    - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: f1e8e1bfafe7fa241ba6b4181f3eba85, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: -4906753471207013880}
+    - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: f1e8e1bfafe7fa241ba6b4181f3eba85, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: -2861487120538402117}
+    - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: f1e8e1bfafe7fa241ba6b4181f3eba85, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 1336947423151974743}
   m_SourcePrefab: {fileID: 100100000, guid: f1e8e1bfafe7fa241ba6b4181f3eba85, type: 3}
 --- !u!1 &3983701581572670814 stripped
 GameObject:
@@ -307,8 +319,82 @@ MonoBehaviour:
   sprintSpeed: 8
   gravity: -9.81
   jumpHeight: 1.5
+--- !u!114 &3095170865833391435
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3983701581572670814}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: -1552182283, guid: e725a070cec140c4caffb81624c8c787, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Fusion.Runtime.dll::Fusion.NetworkObject
+  SortKey: 448444174
+  ObjectInterest: 1
+  Flags: 262145
+  NestedObjects: []
+  NetworkedBehaviours:
+  - {fileID: 4486338045924145566}
+  - {fileID: -4906753471207013880}
+  - {fileID: -2861487120538402117}
+  - {fileID: 1336947423151974743}
+  ForceRemoteRenderTimeframe: 0
+--- !u!114 &-4906753471207013880
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3983701581572670814}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 158639473, guid: e725a070cec140c4caffb81624c8c787, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Fusion.Runtime.dll::Fusion.NetworkTransform
+  _stateAuthorityChangeErrorCorrectionDelta: 0
+  SyncScale: 0
+  SyncParent: 0
+  _autoAOIOverride: 1
+  DisableSharedModeInterpolation: 0
+--- !u!114 &-2861487120538402117
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3983701581572670814}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 506319458, guid: e725a070cec140c4caffb81624c8c787, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Fusion.Runtime.dll::Fusion.NetworkMecanimAnimator
+  Animator: {fileID: 7702016294417106334}
+  ApplyTiming: 2
+  SyncSettings: 79
+  StateHashes: 00000000325a708301e955b481502ce8c2fe1feb28a981077af3fe2e3270625b602a1d72
+  TriggerHashes: 0000000028a981073270625b
+  TotalWords: 4
+--- !u!114 &1336947423151974743
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3983701581572670814}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 5879f55f5c38522448e68bedb333d9da, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::PlayerInputHandler
 --- !u!4 &4324339476860854244 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: -8679921383154817045, guid: f1e8e1bfafe7fa241ba6b4181f3eba85, type: 3}
+  m_PrefabInstance: {fileID: 4290130178081830927}
+  m_PrefabAsset: {fileID: 0}
+--- !u!95 &7702016294417106334 stripped
+Animator:
+  m_CorrespondingSourceObject: {fileID: 5866666021909216657, guid: f1e8e1bfafe7fa241ba6b4181f3eba85, type: 3}
   m_PrefabInstance: {fileID: 4290130178081830927}
   m_PrefabAsset: {fileID: 0}
