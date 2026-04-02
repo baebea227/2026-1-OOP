@@ -99,6 +99,10 @@ public class PlayerMovement : MonoBehaviour
     {
         HandleGravity();
         HandleMovement();
+
+        // [핵심 수정] 수직/수평 이동값을 하나로 합친 뒤, 프레임당 한 번만 Move를 호출합니다.
+        controller.Move(playerVelocity * Time.deltaTime);
+
         UpdateAnimations();
     }
 
@@ -107,19 +111,23 @@ public class PlayerMovement : MonoBehaviour
         // 바닥 체크 (중력 누적 방지)
         if (controller.isGrounded && verticalVelocity < 0)
         {
-            verticalVelocity = -2f;
+            verticalVelocity = -2f; // 바닥에 붙어있도록 약간의 마이너스 값 유지
         }
 
-        // 중력 계산 및 수직 이동
+        // 중력 계산
         verticalVelocity += gravity * Time.deltaTime;
         playerVelocity.y = verticalVelocity;
-        controller.Move(playerVelocity * Time.deltaTime);
+        
+        // 기존에 있던 controller.Move(playerVelocity * Time.deltaTime); 삭제!
     }
 
     private void HandleMovement()
     {
-        // 속도 결정 (입력이 작으면 걷기, 크면 뛰기, 버튼 누르면 전력질주)
-        if (isSprinting && moveInput.magnitude > 0)
+        // [핵심 로직] 전력질주 버튼을 누르고 있고 && 앞쪽(Y값이 0보다 큼)으로 이동 중일 때만 true
+        bool actualSprinting = isSprinting && moveInput.y > 0;
+
+        // 속도 결정
+        if (actualSprinting)
         {
             currentSpeed = sprintSpeed;
         }
@@ -127,7 +135,7 @@ public class PlayerMovement : MonoBehaviour
         {
             currentSpeed = runSpeed;
         }
-        else if (moveInput.magnitude > 0) // 살짝 밀었거나 키보드 입력 시
+        else if (moveInput.magnitude > 0) // 뒤로 걷거나 옆으로만 갈 때는 걷기/일반 달리기
         {
             currentSpeed = walkSpeed;
         }
@@ -136,34 +144,22 @@ public class PlayerMovement : MonoBehaviour
             currentSpeed = 0f;
         }
 
-        // 이동 계산
-        Vector3 move = new Vector3(moveInput.x, 0, moveInput.y);
-        controller.Move(move * currentSpeed * Time.deltaTime);
-
-        // [중요] 8방향 애니메이션을 제대로 보려면 캐릭터가 진행 방향으로 무조건 회전하면 안 됩니다.
-        // 예를 들어 '뒤로 걷기' 모션을 보려면 캐릭터는 앞을 본 상태에서 뒤로 이동해야 합니다.
-        // 만약 항상 앞으로 달리는 모션만 원하신다면 아래 주석을 해제하세요.
-        /*
-        if (move != Vector3.zero)
-        {
-            transform.forward = move;
-        }
-        */
+        // 이동 계산 (이전 답변에서 수정한 playerVelocity에 저장하는 방식)
+        playerVelocity.x = moveInput.x * currentSpeed;
+        playerVelocity.z = moveInput.y * currentSpeed;
     }
 
     private void UpdateAnimations()
     {
-        // 1. 블렌드 트리를 위한 8방향 입력값 전달 (-1.0 ~ 1.0)
         animator.SetFloat("InputX", moveInput.x);
         animator.SetFloat("InputY", moveInput.y);
-
-        // 2. 현재 달리기/전력질주 상태 전달
-        // Magnitude(벡터의 길이)를 전달하여 Idle(0), Walk/Run 구분
         animator.SetFloat("SpeedMagnitude", moveInput.magnitude); 
-        animator.SetBool("IsSprinting", isSprinting);
 
-        // 3. 점프 및 추락 상태 전달
+        // [중요] 버튼을 누른 상태(isSprinting)가 아니라, 실제로 전력질주 중인지 확인해서 애니메이터에 전달
+        bool actualSprinting = isSprinting && moveInput.y > 0;
+        animator.SetBool("IsSprinting", actualSprinting);
+
         animator.SetBool("IsGrounded", controller.isGrounded);
-        animator.SetBool("IsFalling", !controller.isGrounded && verticalVelocity < -2f);
+        animator.SetBool("IsFalling", !controller.isGrounded && verticalVelocity < -3f);
     }
 }
