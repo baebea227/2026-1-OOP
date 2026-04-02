@@ -1,8 +1,9 @@
 using UnityEngine;
 using UnityEngine.InputSystem;
+using Fusion; // 퓨전 네임스페이스 추가
 
-[RequireComponent(typeof(CharacterController), typeof(Animator), typeof(PlayerInput))]
-public class PlayerMovement : MonoBehaviour
+[RequireComponent(typeof(CharacterController), typeof(Animator))]
+public class PlayerMovement : NetworkBehaviour // NetworkBehaviour 상속
 {
     [Header("Movement Settings")]
     public float walkSpeed = 2f;
@@ -11,7 +12,6 @@ public class PlayerMovement : MonoBehaviour
     
     private float currentSpeed;
     private CharacterController controller;
-    private Vector2 moveInput;
 
     [Header("Gravity & Jump")]
     public float gravity = -9.81f;
@@ -21,138 +21,75 @@ public class PlayerMovement : MonoBehaviour
 
     [Header("Components")]
     private Animator animator;
-    private PlayerInput playerInput;
     
-    // 입력 시스템 액션
-    private InputAction moveAction;
-    private InputAction sprintAction;
-    private InputAction jumpAction;
-
-    private bool isSprinting = false;
-    private bool isFalling = false; // [추가] 현재 추락 중인지 체크하는 변수
+    private bool isFalling = false;
 
     void Awake()
     {
         controller = GetComponent<CharacterController>();
-        playerInput = GetComponent<PlayerInput>();
         animator = GetComponent<Animator>();
-
-        moveAction = playerInput.actions["Move"];
-        sprintAction = playerInput.actions["Sprint"];
-        jumpAction = playerInput.actions["Jump"];
     }
 
-    void OnEnable()
+    // 퓨전은 Update 대신 이 메서드에서 물리/이동을 처리합니다.
+    public override void FixedUpdateNetwork()
     {
-        moveAction.performed += OnMoveInput;
-        moveAction.canceled += OnMoveInput;
-
-        if (sprintAction != null)
+        // GetInput을 통해 나 자신 또는 서버로부터 '동기화된 입력값'을 가져옵니다.
+        if (GetInput(out PlayerNetworkInput input))
         {
-            sprintAction.performed += ctx => isSprinting = true;
-            sprintAction.canceled += ctx => isSprinting = false;
-        }
+            HandleGravity(input);
+            HandleMovement(input);
+            
+            // Time.deltaTime 대신 Runner.DeltaTime을 반드시 사용해야 합니다.
+            controller.Move(playerVelocity * Runner.DeltaTime);
 
-        if (jumpAction != null)
-        {
-            jumpAction.performed += OnJumpInput;
+            UpdateAnimations(input);
         }
     }
 
-    void OnDisable()
-    {
-        moveAction.performed -= OnMoveInput;
-        moveAction.canceled -= OnMoveInput;
-        
-        if (sprintAction != null)
-        {
-            sprintAction.performed -= ctx => isSprinting = true;
-            sprintAction.canceled -= ctx => isSprinting = false;
-        }
-
-        if (jumpAction != null)
-        {
-            jumpAction.performed -= OnJumpInput;
-        }
-    }
-
-    private void OnMoveInput(InputAction.CallbackContext context)
-    {
-        moveInput = context.ReadValue<Vector2>();
-    }
-
-    private void OnJumpInput(InputAction.CallbackContext context)
-    {
-        if (controller.isGrounded)
-        {
-            verticalVelocity = Mathf.Sqrt(jumpHeight * -2f * gravity);
-            animator.SetTrigger("Jump");
-        }
-    }
-
-    void Update()
-    {
-        HandleGravity();
-        HandleMovement();
-        
-        controller.Move(playerVelocity * Time.deltaTime);
-
-        UpdateAnimations();
-    }
-
-    private void HandleGravity()
+    private void HandleGravity(PlayerNetworkInput input)
     {
         if (controller.isGrounded && verticalVelocity < 0)
         {
             verticalVelocity = -2f;
         }
 
-        verticalVelocity += gravity * Time.deltaTime;
+        // 동기화된 점프 입력 확인
+        if (input.isJumping && controller.isGrounded)
+        {
+            verticalVelocity = Mathf.Sqrt(jumpHeight * -2f * gravity);
+            animator.SetTrigger("Jump");
+        }
+
+        verticalVelocity += gravity * Runner.DeltaTime;
         playerVelocity.y = verticalVelocity;
     }
 
-    private void HandleMovement()
+    private void HandleMovement(PlayerNetworkInput input)
     {
-        bool actualSprinting = isSprinting && moveInput.y > 0;
+        bool actualSprinting = input.isSprinting && input.moveInput.y > 0;
 
-        if (actualSprinting)
-        {
-            currentSpeed = sprintSpeed;
-        }
-        else if (moveInput.magnitude > 0.5f)
-        {
-            currentSpeed = runSpeed;
-        }
-        else if (moveInput.magnitude > 0)
-        {
-            currentSpeed = walkSpeed;
-        }
-        else
-        {
-            currentSpeed = 0f;
-        }
+        if (actualSprinting) currentSpeed = sprintSpeed;
+        else if (input.moveInput.magnitude > 0.5f) currentSpeed = runSpeed;
+        else if (input.moveInput.magnitude > 0) currentSpeed = walkSpeed;
+        else currentSpeed = 0f;
 
-        playerVelocity.x = moveInput.x * currentSpeed;
-        playerVelocity.z = moveInput.y * currentSpeed;
+        playerVelocity.x = input.moveInput.x * currentSpeed;
+        playerVelocity.z = input.moveInput.y * currentSpeed;
     }
 
-    private void UpdateAnimations()
+    private void UpdateAnimations(PlayerNetworkInput input)
     {
-        animator.SetFloat("InputX", moveInput.x);
-        animator.SetFloat("InputY", moveInput.y);
-        animator.SetFloat("SpeedMagnitude", moveInput.magnitude); 
+        animator.SetFloat("InputX", input.moveInput.x);
+        animator.SetFloat("InputY", input.moveInput.y);
+        animator.SetFloat("SpeedMagnitude", input.moveInput.magnitude); 
 
-        bool actualSprinting = isSprinting && moveInput.y > 0;
+        bool actualSprinting = input.isSprinting && input.moveInput.y > 0;
         animator.SetBool("IsSprinting", actualSprinting);
 
-        // [수정된 로직 1] 땅에 닿았는지 상태 전달 (Grounded)
         animator.SetBool("IsGrounded", controller.isGrounded);
 
-        // [수정된 로직 2] Any State -> Fall 전환 로직
-        // 바닥에서 떨어졌고(공중), 아래로 이동 중일 때 (점프 후 정점 지났을 때 or 절벽에서 떨어질 때)
         if (!controller.isGrounded && verticalVelocity < 0f)
         {
-            // 추락이 시작되는 '최초 1프레임'에만 Trigger 발동
             if (!isFalling)
             {
                 isFalling = true;
@@ -161,7 +98,6 @@ public class PlayerMovement : MonoBehaviour
         }
         else if (controller.isGrounded)
         {
-            // 땅에 닿으면 추락 상태 초기화
             isFalling = false; 
         }
     }
