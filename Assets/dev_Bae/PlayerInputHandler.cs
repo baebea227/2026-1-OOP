@@ -9,6 +9,7 @@ public class PlayerInputHandler : NetworkBehaviour
     private InputAction moveAction;
     private InputAction sprintAction;
     private InputAction jumpAction;
+    public static PlayerInputHandler Local;
 
     // 로컬 입력값을 임시 저장할 변수
     private bool localJumpPressed;
@@ -24,7 +25,11 @@ public class PlayerInputHandler : NetworkBehaviour
     public override void Spawned()
     {
         // 이 캐릭터의 입력 권한이 나에게 없다면 PlayerInput을 끕니다. (상대방 움직임 방지)
-        if (!HasInputAuthority)
+        if (HasInputAuthority)
+        {
+            Local = this; // 로컬 플레이어의 입력 핸들러를 static으로 저장 (편의용)
+        }
+        else
         {
             playerInput.enabled = false;
         }
