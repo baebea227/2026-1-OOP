@@ -222,7 +222,7 @@ Photon 기반 2인 실시간 접속 및 협동 플레이 지원
 | **Scenario** | 혼자서는 움직일 수 없는 무거운 기믹을 두 플레이어가 힘을 합쳐 목표 지점까지 이동시킴 |
 | **Triggering Event** | 상호작용 유효 사거리 내에서 객체에 '밀기/당기기' 키 입력 실행 |
 | **Brief Description** | 두 플레이어의 지속적인 힘 입력을 서버에서 합산하여 객체를 이동시키고, 클라이언트 캐릭터의 위치를 객체에 동기화 |
-| **Actors** | 플레이어1 (Client1), 플레이어2: (Client2), 시스템 (Server)<br> |
+| **Actors** | 플레이어1 (Client1), 플레이어2: (Client2)<br> |
 | **Related Use Cases** | **Include:** 플레이어 이동<br>**Extend:** 스테이지 기믹 상호작용 |
 | **Stakeholders** | 플레이어1, 플레이어2 |
 | **Preconditions** | • 캐릭터가 조작 가능한 상태일 것<br>• 대상이 혼자서는 밀 수 없는 무거운 물리 객체일 것<br>• 두 플레이어 모두 상호작용 사거리 이내에 있을 것 |
@@ -360,7 +360,7 @@ Photon 기반 2인 실시간 접속 및 협동 플레이 지원
 | **Scenario** | 사용자가 게임서버에 접속하여 새로운 방을 생성함 |
 | **Triggering Event** | 사용자가 '방 생성하기' 버튼을 누름 |
 | **Brief Description** | 시스템은 플레이어의 요청을 받아 새로운 Photon Room을 생성하며, 이때 방 이름, 최대 인원, 공개 여부 등의 속성을 설정함 |
-| **Actors** | Primary: 플레이어<br>System: 게임 시스템 (Photon 서버) |
+| **Actors** | 플레이어<br>|
 | **Related Use Cases** | **Include:** 방 참가하기<br>**Extend:** 게임 시작하기 |
 | **Stakeholders** | 플레이어, 같은 방에 입장할 다른 플레이어들, 게임 시스템 |
 | **Preconditions** | • 플레이어가 서버에 연결되어 있어야 함<br>• 방 생성 화면 또는 로비 상태에 있어야 함<br>• 방 생성에 필요한 정보(방 이름, 최대 인원 등)가 입력되어야 함 |
@@ -408,7 +408,7 @@ Photon 기반 2인 실시간 접속 및 협동 플레이 지원
 | **Scenario** | 플레이어가 기존에 생성된 방에 입장하기 위해 참가 요청을 보냄 |
 | **Triggering Event** | 플레이어가 방 목록에서 특정 방을 선택하거나, 방 이름을 입력하여 참가를 요청함 |
 | **Brief Description** | 시스템은 플레이어의 방 참가 요청을 받아 해당 방의 존재 여부, 입장 가능 여부, 최대 인원 등을 기준으로 참가를 처리함 |
-| **Actors** | Primary: 플레이어, System: 게임 시스템 (Photon 서버) |
+| **Actors** |  플레이어 |
 | **Related Use Cases** | **Include:** 서버 접속하기, 방 검색하기<br>**Extend:** 방 생성하기 |
 | **Stakeholders** | 플레이어, 같은 방의 기존 플레이어들, 게임 시스템 |
 | **Preconditions** | • 플레이어가 Photon 서버에 연결되어 있어야 함<br>• 참가하려는 방이 존재하거나 조건에 맞는 방이 있어야 함<br>• 방이 닫혀 있지 않고 최대 인원에 도달하지 않아야 함 |
@@ -455,7 +455,7 @@ Photon 기반 2인 실시간 접속 및 협동 플레이 지원
 | **Scenario** | 같은 게임 방에 입장한 플레이어들이 대기실 또는 플레이 중 텍스트 메시지를 주고받음 |
 | **Triggering Event** | 플레이어가 채팅창에 메시지를 입력하고 전송(Enter) 키를 누름 |
 | **Brief Description** | 시스템은 플레이어가 입력한 메시지를 RPC(Remote Procedure Call)를 통해 같은 방의 다른 플레이어들에게 전달하고 UI에 표시함 |
-| **Actors** | Primary: 플레이어<br>System: 게임 시스템 (Photon 서버) |
+| **Actors** | 플레이어|
 | **Related Use Cases** | **Include:** 서버 접속하기, 방 생성하기, 방 참가하기 |
 | **Stakeholders** | 플레이어, 같은 방의 다른 플레이어, 게임 시스템 |
 | **Preconditions** | • 플레이어가 서버에 연결되어 있고, 같은 방에 입장한 상태여야 함<br>• 채팅 UI가 활성화되어 있어야 함<br>• 채팅 처리 오브젝트에 네트워크 컴포넌트(PhotonView)가 연결되어 있어야 함 |
@@ -502,7 +502,7 @@ Photon 기반 2인 실시간 접속 및 협동 플레이 지원
 | **Scenario** | 같은 방에 있는 플레이어들의 준비 상태가 충족되면 시스템이 게임 시작 여부를 방 전체에 반영함 |
 | **Triggering Event** | 게임 시작 조건이 충족되거나, 플레이어(방장)가 시작 요청을 보냄 |
 | **Brief Description** | 시스템은 게임 시작 여부, 시작 시간 등의 정보를 룸 속성(Room Properties)으로 갱신하고, 같은 방의 모든 플레이어에게 이를 동기화함 |
-| **Actors** | Primary: 플레이어, System: 게임 시스템 (Photon 서버) |
+| **Actors** | 플레이어|
 | **Related Use Cases** | **Include:** 방 참가하기, Ready 하기, 방 인원 Ready 체크 |
 | **Stakeholders** | 플레이어, 같은 방의 다른 플레이어, 게임 시스템 |
 | **Preconditions** | • 플레이어들이 같은 Photon Room에 입장해 있어야 함<br>• 모든 플레이어의 게임 시작 조건(Ready 등)이 충족되어야 함<br>• 시작 상태를 저장할 룸 속성(HashTable 형태)이 정의되어 있어야 함 |
@@ -554,7 +554,7 @@ Photon 기반 2인 실시간 접속 및 협동 플레이 지원
 | **Scenario** | 플레이어가 스테이지를 선택하면 맵이 생성되고 아바타가 배치됨 |
 | **Triggering Event** | 플레이어가 스테이지를 선택하여 입장을 시도함 |
 | **Brief Description** | 게임 시스템은 플레이어가 선택한 스테이지를 확인하여 해당하는 맵을 로딩하고, 완료 시 플레이어의 아바타를 스폰 위치에 생성함 |
-| **Actors** | Primary: 플레이어<br>System: 게임 시스템 |
+| **Actors** | 플레이어|
 | **Related Use Cases** | **Include:** 서버 - 게임 시작하기 |
 | **Stakeholders** | 플레이어, 게임 시스템 |
 | **Preconditions** | • 게임이 실행 중이어야 함<br>• 플레이어들이 게임에 접속해 시작할 준비를 마친 상태여야 함 |
@@ -597,7 +597,7 @@ Photon 기반 2인 실시간 접속 및 협동 플레이 지원
 | **Scenario** | 플레이어가 레버 오브젝트와 상호작용해 숨겨진 구조물을 활성화함 |
 | **Triggering Event** | 플레이어가 레버 오브젝트와 상호작용을 시도함 |
 | **Brief Description** | 플레이어가 레버를 작동시키면, 아바타 조작만으로는 오를 수 없는 절벽에 비계 형태의 구조물이 나타나 이동 가능한 길을 만들어 줌 |
-| **Actors** | Primary: 플레이어<br>System: 게임 시스템 |
+| **Actors** | 플레이어|
 | **Related Use Cases** | 없음 |
 | **Stakeholders** | 플레이어, 게임 시스템 |
 | **Preconditions** | • 게임이 실행 중이며 플레이어가 아바타를 조작할 수 있는 상태여야 함<br>• 오를 수 없는 절벽 지형과 상호작용 가능한 레버가 존재해야 함 |
@@ -640,7 +640,7 @@ Photon 기반 2인 실시간 접속 및 협동 플레이 지원
 | **Scenario** | 플레이어가 버튼 오브젝트와 상호작용해서 교차 활성화되는 다리 구조물을 작동시킴 |
 | **Triggering Event** | 플레이어가 버튼 오브젝트와 상호작용을 시도함 |
 | **Brief Description** | 플레이어가 버튼을 작동시키면 다리를 구성하는 구조물들이 세트(A/B)별로 교차 활성화 및 비활성화되며 이동 가능한 경로를 변경함 |
-| **Actors** | Primary: 플레이어<br>System: 게임 시스템 |
+| **Actors** | 플레이어|
 | **Related Use Cases** | 없음 |
 | **Stakeholders** | 플레이어, 게임 시스템 |
 | **Preconditions** | • 게임이 실행 중이며 플레이어가 아바타를 조작할 수 있는 상태여야 함<br>• 건너가야 하는 지형과 교차 다리 구조물, 상호작용 가능한 버튼이 존재해야 함 |
@@ -685,7 +685,7 @@ Photon 기반 2인 실시간 접속 및 협동 플레이 지원
 | **Scenario** | 스테이지의 최종 기믹을 수행하고 스테이지 클리어 상태로 진입함 |
 | **Triggering Event** | 플레이어들이 스테이지에 설정된 최종 클리어 조건을 달성함 |
 | **Brief Description** | 두 명의 플레이어가 각각 두 개의 발판을 밟아 출구를 개방하고, 두 플레이어 모두 해당 출구로 진입하여 스테이지를 클리어함 |
-| **Actors** | Primary: 플레이어 A, 플레이어 B<br>System: 게임 시스템 |
+| **Actors** | Primary: 플레이어 A, 플레이어 B|
 | **Related Use Cases** | **Include:** 플레이어 - 스테이지 이동 및 클리어하기 |
 | **Stakeholders** | 플레이어, 게임 시스템 |
 | **Preconditions** | • 게임이 실행 중이며 아바타를 조작할 수 있는 상태여야 함<br>• 클리어 조건에 해당하는 두 개의 발판과 닫혀있는 출구가 존재해야 함 |

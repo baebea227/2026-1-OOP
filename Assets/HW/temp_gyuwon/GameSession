@@ -1,0 +1,30 @@
+using System;
+
+public class GameSession
+{
+    public bool isStarted;
+    public bool isEnded;
+    public DateTime startTime;
+
+    public void StartGame()
+    {
+        // 게임 시작 상태를 설정한다.
+        isStarted = true;
+        isEnded = false;
+        startTime = DateTime.Now;
+    }
+
+    public void EndGame()
+    {
+        // 게임 종료 상태를 설정한다.
+        isEnded = true;
+    }
+
+    public void ResetSession()
+    {
+        // 게임 세션 상태를 초기화한다.
+        isStarted = false;
+        isEnded = false;
+        startTime = DateTime.MinValue;
+    }
+}
