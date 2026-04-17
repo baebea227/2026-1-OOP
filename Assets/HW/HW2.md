@@ -728,3 +728,17 @@ style: |
   </ul>
 </div>
 
+---
+
+# Non-Functional Requirements
+
+---
+# 비기능적 요구사항
+
+| | | | |
+| :--- | :--- | :--- | :--- |
+| Use Case Name | NFR 내역 (Non-Functional Requirements) | Quality | Quality Attributes |
+| **스테이지 입장 - 맵 생성** | **스테이지 생성 응답성:** 플레이어가 스테이지를 선택하고 게임을 시작하려 할 때 맵 로딩이 신속히 진행되어야 함. | Performance Efficiency<br>(성능 효율성) | Time Behavior<br>(시간 반응성) |
+| **기믹 수행 - 레버 작동** | **상호작용 정확성:** 레버 상호작용 시 지정된 오브젝트들이 정확히 작동하도록 해야 함. | Functional Suitability<br>(기능 적합성) | Functional Correctness<br>(기능 정확성) |
+| **기믹 수행 - 버튼 작동** | **기믹 학습성:** 복잡한 기믹이라도 사용자가 빠른 시간 내에 이해할 수 있게 설계해야 함. | Interaction Capability<br>(상호작용 능력) | Learnability<br>(학습성) |
+| **스테이지 최종 기믹 해결<br>및 스테이지 클리어** | **클리어 판정 무결성:** 최종 기믹을 정상적으로 수행했을 시에만 스테이지 클리어 판정으로 인식해야 함. | Reliability<br>(안정성) | Faultlessness<br>(무결성) |
