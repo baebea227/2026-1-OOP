@@ -2,7 +2,6 @@ public class Character
 {
     public string ownerId { get; set; }          // 추가: 이 캐릭터를 소유한 Player ID
     public Vector3 position { get; set; }
-    public int health { get; set; }
     public CharacterState state { get; set; }
     public PhysicsObject? heldObject { get; set; }
 
