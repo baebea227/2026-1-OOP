@@ -40,7 +40,6 @@ public class PlayerController
         // 매 프레임 캐릭터 상태를 UI에 공급
         uiCtrl.SetStatus(new PlayerStatus
         {
-            health = playerCharacter.health,
             state = playerCharacter.state,
             isHoldingObject = playerCharacter.heldObject != null
         });
