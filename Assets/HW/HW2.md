@@ -296,6 +296,40 @@ style: |
 
 ---
 
+# Non-Functional Requirements
+
+---
+
+# Player
+| | | | |
+| :--- | :--- | :--- | :--- |
+| Use Case Name| NFR 내역 (Non-Functional Requirements) | Quality | Quality Attributes |
+| **플레이어 이동** | **클라이언트 응답성:** 이동 키 입력 시 클라이언트 화면에서 캐릭터가 지연(Lag) 없이 즉각적으로 반응하여 이동해야 함 (예: 입력 후 50ms 이내 렌더링). | Performance Efficiency<br>(성능 효율성) | Time Behavior<br>(시간 반응성) |
+| **플레이어 이동** | **서버 동기화 성능:** 플레이어의 위치 정보가 서버를 거쳐 다른 클라이언트들에게 실시간에 가깝게 전송되고 화면에 부드럽게 동기화되어야 함. | Performance Efficiency<br>(성능 효율성) | Time Behavior<br>(시간 반응성) |
+| **플레이어 이동** | **물리 충돌 처리 정확도:** 이동 경로 상의 벽, 장애물 등 이동 불가능 영역을 정확히 판정하여 캐릭터가 지형을 뚫고 지나가는 현상(Clipping)이 발생하지 않아야 함. | Functional Suitability<br>(기능 적합성) | Functional Correctness<br>(기능 정확성) |
+
+---
+
+| | | | |
+| :--- | :--- | :--- | :--- |
+| Use Case Name| NFR 내역 (Non-Functional Requirements) | Quality | Quality Attributes |
+| **오브젝트 잡기/던지기** | **로컬 시각적 응답성:** 던지기 입력 시 서버 응답 대기 지연(Lag)을 숨기기 위해, 로컬(클라이언트) 환경에서 우선적으로 물리적 힘을 적용해 즉시 피드백을 제공해야 함. | Performance Efficiency<br>(성능 효율성) | Time Behavior<br>(시간 반응성) |
+| **오브젝트 잡기/던지기** | **물리 궤적 동기화 정확도:** 로컬에서 예측된 물리 궤적과 서버에서 시뮬레이션된 실제 궤적 간의 오차를 최소화하고, 차이가 발생할 경우 화면 튐 현상 없이 부드럽게 위치를 보정해야 함. | Functional Suitability<br>(기능 적합성) | Functional Correctness<br>(기능 정확성) |
+| **오브젝트 잡기/던지기** | **동시성 제어 및 충돌 해소:** 여러 클라이언트가 밀리초 단위로 동시에 동일한 객체를 잡으려 시도할 때, 서버는 타임스탬프 등을 기준으로 주도권을 1명에게만 부여하고 늦은 요청은 신속히 롤백 처리해야 함. | Reliability<br>(신뢰성) | Fault Tolerance<br>(결함 수용성) |
+| **오브젝트 잡기/던지기** | **물리 엔진 안정성 및 복구력:** 객체가 지형에 끼어 물리 연산이 폭주하거나 무한 루프에 빠지는 것을 감지하고, 즉시 속도를 0으로 초기화 후 안전 구역으로 복구시켜 서버 크래시를 방지해야 함. | Reliability<br>(신뢰성) | Recoverability<br>(복구력) |
+| **오브젝트 잡기/던지기**,<br>**무거운 물리 객체 밀기** | **상태 일관성 유지:** 객체를 들고 있는 도중 피격, 사망, 또는 네트워크 단절이 발생할 경우, 들고 있던 객체가 허공에 멈추거나 증발하지 않고 즉시 드롭되도록 상태를 일관성 있게 동기화해야 함. | Functional Suitability<br>(기능 적합성) | Functional Correctness<br>(기능 정확성) |
+
+---
+
+| | | | |
+| :--- | :--- | :--- | :--- |
+| Use Case Name| NFR 내역 (Non-Functional Requirements) | Quality | Quality Attributes |
+| **무거운 물리 객체 밀기** | **지속적 입력 합산 및 응답성:** 두 클라이언트의 연속적인 힘(입력 벡터) 데이터를 서버가 지연 없이 수집·합산하고, 객체의 이동 상태를 실시간(예: 틱당 처리)으로 갱신하여 브로드캐스트해야 함. | Performance Efficiency<br>(성능 효율성) | Time Behavior<br>(시간 반응성) |
+| **무거운 물리 객체 밀기** | **객체-캐릭터 결합 동기화 정확도:** 객체와 캐릭터가 밀착하여 이동하므로, 네트워크 지연(Ping 격차)이 발생하더라도 캐릭터가 허공을 밀거나 객체를 파고들지 않도록 클라이언트 간 정밀한 위치 보간(Interpolation)이 이루어져야 함. | Functional Suitability<br>(기능 적합성) | Functional Correctness<br>(기능 정확성) |
+| **무거운 물리 객체 밀기** | **상태 변화 및 이탈 대응 (결함 수용성):** 조작 중 한 플레이어의 갑작스러운 네트워크 단절, 피격, 사망 시 서버는 이를 즉각 감지하여 힘 합산에서 제외시키고 롤백/정지 처리를 통해 게임 진행 불가 상태(Soft-lock)를 방지해야 함. | Reliability<br>(신뢰성) | Fault Tolerance<br>(결함 수용성) |
+
+---
+
 | | | | |
 | :--- | :--- | :--- | :--- |
 | Use Case Name| NFR 내역 (Non-Functional Requirements) | Quality | Quality Attributes |
@@ -501,6 +535,21 @@ style: |
 
 ---
 
+# Non-Functional Requirements
+
+---
+# 비기능적 요구사항
+
+| | | | |
+| :--- | :--- | :--- | :--- |
+| Use Case Name | NFR 내역 (Non-Functional Requirements) | Quality | Quality Attributes |
+| **방 생성하기** | **방 생성 응답성:** 사용자가 방 생성 요청을 보냈을 때, 시스템은 지연 없이 방 생성 결과를 반환하고 대기실 화면으로 전환해야 함. | Performance Efficiency<br>(성능 효율성) | Time Behavior<br>(시간 반응성) |
+| **방 참가하기** | **입장 판정 정확성:** 존재하지 않는 방, 최대 인원을 초과한 방, 닫힌 방에 대해서는 참가 요청이 정확하게 거부되어야 함. | Functional Suitability<br>(기능 적합성) | Functional Correctness<br>(기능 정확성) |
+| **채팅하기** | **메시지 전달 응답성:** 플레이어가 전송한 채팅 메시지는 같은 방의 다른 플레이어들에게 짧은 시간 안에 표시되어야 함. | Performance Efficiency<br>(성능 효율성) | Time Behavior<br>(시간 반응성) |
+| **스테이지 시작하기** | **시작 조건 판정 정확성:** 모든 플레이어가 Ready 상태일 때만 게임 시작이 허용되어야 하며, 조건이 충족되지 않으면 시작 요청이 거부되어야 함. | Functional Suitability<br>(기능 적합성) | Functional Correctness<br>(기능 정확성) |
+
+---
+
 # Use Case: 오브젝트, 맵
 담당: 양준영
     
@@ -521,7 +570,6 @@ style: |
 | **Post Conditions** | • 스테이지의 맵이 로드됨<br>• 게임에 접속한 플레이어들의 아바타가 맵의 지정된 위치에 놓임 |
 
 ---
-
 # Use Case 1: 스테이지 입장 - 맵 생성 (2/2)
 
 <div class="columns">
@@ -680,53 +728,3 @@ style: |
   </ul>
 </div>
 
----
-
-# Use Case Diagram
-
----
-
-# Non-Functional Requirements
-
----
-
-# Player
-| | | | |
-| :--- | :--- | :--- | :--- |
-| Use Case Name| NFR 내역 (Non-Functional Requirements) | Quality | Quality Attributes |
-| **플레이어 이동** | **클라이언트 응답성:** 이동 키 입력 시 클라이언트 화면에서 캐릭터가 지연(Lag) 없이 즉각적으로 반응하여 이동해야 함 (예: 입력 후 50ms 이내 렌더링). | Performance Efficiency<br>(성능 효율성) | Time Behavior<br>(시간 반응성) |
-| **플레이어 이동** | **서버 동기화 성능:** 플레이어의 위치 정보가 서버를 거쳐 다른 클라이언트들에게 실시간에 가깝게 전송되고 화면에 부드럽게 동기화되어야 함. | Performance Efficiency<br>(성능 효율성) | Time Behavior<br>(시간 반응성) |
-| **플레이어 이동** | **물리 충돌 처리 정확도:** 이동 경로 상의 벽, 장애물 등 이동 불가능 영역을 정확히 판정하여 캐릭터가 지형을 뚫고 지나가는 현상(Clipping)이 발생하지 않아야 함. | Functional Suitability<br>(기능 적합성) | Functional Correctness<br>(기능 정확성) |
-
----
-
-| | | | |
-| :--- | :--- | :--- | :--- |
-| Use Case Name| NFR 내역 (Non-Functional Requirements) | Quality | Quality Attributes |
-| **오브젝트 잡기/던지기** | **로컬 시각적 응답성:** 던지기 입력 시 서버 응답 대기 지연(Lag)을 숨기기 위해, 로컬(클라이언트) 환경에서 우선적으로 물리적 힘을 적용해 즉시 피드백을 제공해야 함. | Performance Efficiency<br>(성능 효율성) | Time Behavior<br>(시간 반응성) |
-| **오브젝트 잡기/던지기** | **물리 궤적 동기화 정확도:** 로컬에서 예측된 물리 궤적과 서버에서 시뮬레이션된 실제 궤적 간의 오차를 최소화하고, 차이가 발생할 경우 화면 튐 현상 없이 부드럽게 위치를 보정해야 함. | Functional Suitability<br>(기능 적합성) | Functional Correctness<br>(기능 정확성) |
-| **오브젝트 잡기/던지기** | **동시성 제어 및 충돌 해소:** 여러 클라이언트가 밀리초 단위로 동시에 동일한 객체를 잡으려 시도할 때, 서버는 타임스탬프 등을 기준으로 주도권을 1명에게만 부여하고 늦은 요청은 신속히 롤백 처리해야 함. | Reliability<br>(신뢰성) | Fault Tolerance<br>(결함 수용성) |
-| **오브젝트 잡기/던지기** | **물리 엔진 안정성 및 복구력:** 객체가 지형에 끼어 물리 연산이 폭주하거나 무한 루프에 빠지는 것을 감지하고, 즉시 속도를 0으로 초기화 후 안전 구역으로 복구시켜 서버 크래시를 방지해야 함. | Reliability<br>(신뢰성) | Recoverability<br>(복구력) |
-| **오브젝트 잡기/던지기**,<br>**무거운 물리 객체 밀기** | **상태 일관성 유지:** 객체를 들고 있는 도중 피격, 사망, 또는 네트워크 단절이 발생할 경우, 들고 있던 객체가 허공에 멈추거나 증발하지 않고 즉시 드롭되도록 상태를 일관성 있게 동기화해야 함. | Functional Suitability<br>(기능 적합성) | Functional Correctness<br>(기능 정확성) |
-
----
-
-| | | | |
-| :--- | :--- | :--- | :--- |
-| Use Case Name| NFR 내역 (Non-Functional Requirements) | Quality | Quality Attributes |
-| **무거운 물리 객체 밀기** | **지속적 입력 합산 및 응답성:** 두 클라이언트의 연속적인 힘(입력 벡터) 데이터를 서버가 지연 없이 수집·합산하고, 객체의 이동 상태를 실시간(예: 틱당 처리)으로 갱신하여 브로드캐스트해야 함. | Performance Efficiency<br>(성능 효율성) | Time Behavior<br>(시간 반응성) |
-| **무거운 물리 객체 밀기** | **객체-캐릭터 결합 동기화 정확도:** 객체와 캐릭터가 밀착하여 이동하므로, 네트워크 지연(Ping 격차)이 발생하더라도 캐릭터가 허공을 밀거나 객체를 파고들지 않도록 클라이언트 간 정밀한 위치 보간(Interpolation)이 이루어져야 함. | Functional Suitability<br>(기능 적합성) | Functional Correctness<br>(기능 정확성) |
-| **무거운 물리 객체 밀기** | **상태 변화 및 이탈 대응 (결함 수용성):** 조작 중 한 플레이어의 갑작스러운 네트워크 단절, 피격, 사망 시 서버는 이를 즉각 감지하여 힘 합산에서 제외시키고 롤백/정지 처리를 통해 게임 진행 불가 상태(Soft-lock)를 방지해야 함. | Reliability<br>(신뢰성) | Fault Tolerance<br>(결함 수용성) |
-
----
-
-# Conceptual Classes
-
----
-
-# Player
-![width:850](images/PlayerClassesDiagram.png)
-
----
-
-# Activity Diagram
