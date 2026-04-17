@@ -6,7 +6,7 @@ public class StageManager : MonoBehaviour
 
     int LoadStage()
     {
-        // temp
+        // 스테이지 로딩 구현
         return 1;
     }
 }

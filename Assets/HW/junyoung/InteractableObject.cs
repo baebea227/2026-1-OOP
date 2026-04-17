@@ -1,19 +1,12 @@
 using UnityEngine;
 
-public class InteractableObject : MonoBehaviour
+public abstract class InteractableObject : MonoBehaviour
 {
     public Collider interactableArea;
-    // public ActObject connectedObj;
+    public ActObject connectedObj;
     bool interactState;
 
-    void Interact()
-    {
-        
-    }
+    public abstract void Interact();
 
-    bool InteractCheck()
-    {
-        // temp
-        return true;
-    }
+    public abstract bool InteractCheck();
 }
