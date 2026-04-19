@@ -523,10 +523,10 @@ style: |
 | | | | |
 | :--- | :--- | :--- | :--- |
 | Use Case Name | NFR 내역 (Non-Functional Requirements) | Quality | Quality Attributes |
-| **방 생성하기** | **방 생성 응답성:** 사용자가 방 생성 요청을 보냈을 때, 시스템은 지연 없이 방 생성 결과를 반환하고 대기실 화면으로 전환해야 함. | Performance Efficiency<br>(성능 효율성) | Time Behavior<br>(시간 반응성) |
-| **방 참가하기** | **입장 판정 정확성:** 존재하지 않는 방, 최대 인원을 초과한 방, 닫힌 방에 대해서는 참가 요청이 정확하게 거부되어야 함. | Functional Suitability<br>(기능 적합성) | Functional Correctness<br>(기능 정확성) |
-| **채팅하기** | **메시지 전달 응답성:** 플레이어가 전송한 채팅 메시지는 같은 방의 다른 플레이어들에게 짧은 시간 안에 표시되어야 함. | Performance Efficiency<br>(성능 효율성) | Time Behavior<br>(시간 반응성) |
-| **스테이지 시작하기** | **시작 조건 판정 정확성:** 모든 플레이어가 Ready 상태일 때만 게임 시작이 허용되어야 하며, 조건이 충족되지 않으면 시작 요청이 거부되어야 함. | Functional Suitability<br>(기능 적합성) | Functional Correctness<br>(기능 정확성) |
+| **방 생성하기** | **방 생성 응답성:** 사용자가 방 생성 요청을 보냈을 때, 시스템은 지연 없이 방 생성 결과를 반환하고 대기실 화면으로 전환해야 함. | Performance Efficiency<br>(성능 효율성) | Time Behavior(시간 반응성) 평균 2초 이내에 방 생성 결과가 화면에 반영되고 대기실로 전환되어야 함. |
+| **방 참가하기** | **입장 판정 정확성:** 존재하지 않는 방, 최대 인원을 초과한 방, 닫힌 방에 대해서는 참가 요청이 정확하게 거부되어야 함. | Functional Suitability<br>(기능 적합성) | Fault Tolerance(결함 수용성) 동시 요청 상황에서도 최대 인원을 초과한 입장을 허용하지 않아야 함. |
+| **채팅하기** | **메시지 전달 응답성:** 플레이어가 전송한 채팅 메시지는 같은 방의 다른 플레이어들에게 짧은 시간 안에 표시되어야 함. | Performance Efficiency<br>(성능 효율성) | Confidentiality(기밀성) 같은 방 외부의 사용자에게 채팅 메시지가 전달되거나 노출되지 않아야 함. |
+| **스테이지 시작하기** | **시작 조건 판정 정확성:** 모든 플레이어가 Ready 상태일 때만 게임 시작이 허용되어야 하며, 조건이 충족되지 않으면 시작 요청이 거부되어야 함. | Functional Suitability<br>(기능 적합성) | Interoperability(상호운용성) 모든 클라이언트가 동일한 시작 상태와 시작 시점을 공유해야 함.|
 
 ---
 

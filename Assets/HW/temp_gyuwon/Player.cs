@@ -10,19 +10,16 @@ public class Player
     public void SetReady(bool ready)
     {
         // 플레이어의 준비 상태를 변경한다.
-        isReady = ready;
     }
 
     public void JoinRoom(Room room)
     {
         // 현재 참가한 방 정보를 저장한다.
-        currentRoom = room;
     }
 
     public void LeaveRoom()
     {
         // 현재 참가한 방 정보를 초기화한다.
-        currentRoom = null;
     }
 
     public void SendChat(string message)
