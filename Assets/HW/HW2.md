@@ -718,7 +718,7 @@ style: |
 | | | | |
 | :--- | :--- | :--- | :--- |
 | Use Case Name | NFR 내역 (Non-Functional Requirements) | Quality | Quality Attributes |
-| **스테이지 입장 - 맵 생성** | **스테이지 생성 응답성:** 플레이어가 스테이지를 선택하고 게임을 시작하려 할 때 맵 로딩이 신속히 진행되어야 함. | Performance Efficiency<br>(성능 효율성) | Time Behavior<br>(시간 반응성) |
-| **기믹 수행 - 레버 작동** | **상호작용 정확성:** 레버 상호작용 시 지정된 오브젝트들이 정확히 작동하도록 해야 함. | Functional Suitability<br>(기능 적합성) | Functional Correctness<br>(기능 정확성) |
-| **기믹 수행 - 버튼 작동** | **기믹 학습성:** 복잡한 기믹이라도 사용자가 빠른 시간 내에 이해할 수 있게 설계해야 함. | Interaction Capability<br>(상호작용 능력) | Learnability<br>(학습성) |
-| **스테이지 최종 기믹 해결<br>및 스테이지 클리어** | **클리어 판정 무결성:** 최종 기믹을 정상적으로 수행했을 시에만 스테이지 클리어 판정으로 인식해야 함. | Reliability<br>(안정성) | Faultlessness<br>(무결성) |
+| **스테이지 입장 - 맵 생성** | **스테이지 생성 응답성:** 플레이어가 스테이지를 선택하고 게임을 시작하려 할 때 맵 로딩이 신속히 진행되어야 함. | Performance Efficiency<br>(성능 효율성) | Time Behavior: 지정된 시간(약 3초) 안에 스테이지가 로딩되도록 함. |
+| **기믹 수행 - 레버 작동** | **상호작용 정확성:** 레버 상호작용 시 지정된 오브젝트들이 정확히 작동하도록 해야 함. | Functional Suitability<br>(기능 적합성) | Functional Correctness: 레버와 지정된 오브젝트를 정확히 연결해 함수가 올바르게 작동하도록 구현. |
+| **기믹 수행 - 버튼 작동** | **기믹 학습성:** 복잡한 기믹이라도 사용자가 빠른 시간 내에 이해할 수 있게 설계해야 함. | Interaction Capability<br>(상호작용 능력) | Learnability: 한 화면 안에서 기믹의 실행이 파악되는 등 기믹을 직관적으로 이해 가능하게 설계. |
+| **스테이지 최종 기믹 해결<br>및 스테이지 클리어** | **클리어 판정 무결성:** 최종 기믹을 정상적으로 수행했을 시에만 스테이지 클리어 판정으로 인식해야 함. | Reliability<br>(안정성) | Faultlessness: 지정된 기믹만 클리어 판정으로 연결, 이외 모든 기믹에 대해 클리어 판정으로 연결되지 않도록 전수조사 |
