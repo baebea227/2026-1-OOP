@@ -11,9 +11,9 @@ public class GrabbableObject : InteractableObject, IPickupable, IPushable
     public void OnPickup(PlayerGrabHandler grabber)
     {
         currentHolder = grabber;
-        rb.isKinematic = true;
         rb.linearVelocity = Vector3.zero;
         rb.angularVelocity = Vector3.zero;
+        rb.isKinematic = true;
     }
 
     public void OnThrow(Vector3 velocity)
