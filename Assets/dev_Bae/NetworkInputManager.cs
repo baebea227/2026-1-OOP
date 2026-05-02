@@ -6,14 +6,34 @@ using System.Collections.Generic;
 
 public class NetworkInputManager : MonoBehaviour, INetworkRunnerCallbacks
 {
+    public NetworkPrefabRef playerPrefab;
+
+    private Dictionary<PlayerRef, NetworkObject> spawnedPlayers = new Dictionary<PlayerRef, NetworkObject>();
+
     public void OnInput(NetworkRunner runner, NetworkInput input)
     {
         if (PlayerInputHandler.Local != null)
             PlayerInputHandler.Local.OnInput(runner, input);
     }
 
-    public void OnPlayerJoined(NetworkRunner runner, PlayerRef player) { }
-    public void OnPlayerLeft(NetworkRunner runner, PlayerRef player) { }
+    public void OnPlayerJoined(NetworkRunner runner, PlayerRef player)
+    {
+        if (runner.IsServer || runner.GameMode == GameMode.Shared)
+        {
+            Vector3 spawnPos = new Vector3(player.RawEncoded * 2, 1, 0);
+            NetworkObject obj = runner.Spawn(playerPrefab, spawnPos, Quaternion.identity, player);
+            spawnedPlayers.Add(player, obj);
+        }
+    }
+
+    public void OnPlayerLeft(NetworkRunner runner, PlayerRef player)
+    {
+        if (spawnedPlayers.TryGetValue(player, out NetworkObject obj))
+        {
+            runner.Despawn(obj);
+            spawnedPlayers.Remove(player);
+        }
+    }
     public void OnInputMissing(NetworkRunner runner, PlayerRef player, NetworkInput input) { }
     public void OnShutdown(NetworkRunner runner, ShutdownReason shutdownReason) { }
     public void OnConnectedToServer(NetworkRunner runner) { }
