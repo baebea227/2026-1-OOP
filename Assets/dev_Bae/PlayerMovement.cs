@@ -4,6 +4,8 @@ using Fusion;
 [RequireComponent(typeof(CharacterController))]
 public class PlayerMovement : NetworkBehaviour
 {
+    [Header("Push Settings")]
+    public float pushForce = 3f;
     [Header("Movement Settings")]
     public float walkSpeed = 2f;
     public float runSpeed = 5f;
@@ -72,6 +74,18 @@ public class PlayerMovement : NetworkBehaviour
         v += gravity * Runner.DeltaTime;
 
         PlayerVelocity = new Vector3(PlayerVelocity.x, v, PlayerVelocity.z);
+    }
+
+    private void OnControllerColliderHit(ControllerColliderHit hit)
+    {
+        if (!HasInputAuthority) return;
+
+        var pushable = hit.collider.GetComponent<IPushable>();
+        if (pushable == null) return;
+
+        Vector3 force = hit.moveDirection * pushForce;
+        force.y = 0f;
+        pushable.OnPush(force, Object.InputAuthority);
     }
 
     private void HandleMovement(PlayerNetworkInput input, bool sprinting)
