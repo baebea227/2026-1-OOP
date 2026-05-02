@@ -39,15 +39,12 @@ public class PlayerInputHandler : NetworkBehaviour
         if (HasInputAuthority) Local = null;
     }
 
-    void Update()
+    public override void Render()
     {
         if (!HasInputAuthority) return;
 
-        // 점프처럼 '누른 순간'이 중요한 키는 Update에서 캐치해둡니다.
         if (jumpAction.WasPressedThisFrame())
-        {
             localJumpPressed = true;
-        }
     }
 
     // 퓨전 엔진이 틱마다 입력을 요구할 때 호출되는 콜백 (Runner 매니저에 등록되어 있어야 함)

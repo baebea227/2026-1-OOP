@@ -1,5 +1,4 @@
 using UnityEngine;
-using UnityEngine.InputSystem;
 using Fusion;
 
 [RequireComponent(typeof(CharacterController), typeof(Animator))]
@@ -16,11 +15,8 @@ public class PlayerMovement : NetworkBehaviour
     public float gravity = -9.81f;
     public float jumpHeight = 1.5f;
 
-    [Header("Components")]
     private Animator animator;
 
-    // 늦게 접속한 클라이언트도 올바른 초기 상태를 받을 수 있도록 [Networked]로 선언
-    [Networked] private float VerticalVelocity { get; set; }
     [Networked] private Vector3 PlayerVelocity { get; set; }
     [Networked] private NetworkBool IsFalling { get; set; }
 
@@ -34,18 +30,20 @@ public class PlayerMovement : NetworkBehaviour
     {
         if (GetInput(out PlayerNetworkInput input))
         {
+            bool sprinting = input.isSprinting && input.moveInput.y > 0;
+
             HandleGravity(input);
-            HandleMovement(input);
+            HandleMovement(input, sprinting);
 
             controller.Move(PlayerVelocity * Runner.DeltaTime);
 
-            UpdateAnimations(input);
+            UpdateAnimations(input, sprinting);
         }
     }
 
     private void HandleGravity(PlayerNetworkInput input)
     {
-        float v = VerticalVelocity;
+        float v = PlayerVelocity.y;
 
         if (controller.isGrounded && v < 0)
             v = -2f;
@@ -54,15 +52,12 @@ public class PlayerMovement : NetworkBehaviour
             v = Mathf.Sqrt(jumpHeight * -2f * gravity);
 
         v += gravity * Runner.DeltaTime;
-        VerticalVelocity = v;
 
         PlayerVelocity = new Vector3(PlayerVelocity.x, v, PlayerVelocity.z);
     }
 
-    private void HandleMovement(PlayerNetworkInput input)
+    private void HandleMovement(PlayerNetworkInput input, bool sprinting)
     {
-        bool sprinting = input.isSprinting && input.moveInput.y > 0;
-
         float speed;
         if (sprinting) speed = sprintSpeed;
         else if (input.moveInput.magnitude > 0.5f) speed = runSpeed;
@@ -72,10 +67,8 @@ public class PlayerMovement : NetworkBehaviour
         PlayerVelocity = new Vector3(input.moveInput.x * speed, PlayerVelocity.y, input.moveInput.y * speed);
     }
 
-    private void UpdateAnimations(PlayerNetworkInput input)
+    private void UpdateAnimations(PlayerNetworkInput input, bool sprinting)
     {
-        bool sprinting = input.isSprinting && input.moveInput.y > 0;
-
         animator.SetFloat("InputX", input.moveInput.x);
         animator.SetFloat("InputY", input.moveInput.y);
         animator.SetFloat("SpeedMagnitude", input.moveInput.magnitude);
@@ -85,7 +78,7 @@ public class PlayerMovement : NetworkBehaviour
         if (input.isJumping && controller.isGrounded)
             animator.SetTrigger("Jump");
 
-        if (!controller.isGrounded && VerticalVelocity < 0f)
+        if (!controller.isGrounded && PlayerVelocity.y < 0f)
         {
             if (!IsFalling)
             {
