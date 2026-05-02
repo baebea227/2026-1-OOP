@@ -34,8 +34,7 @@ For isolated tests: `PlayerTestScene.unity` (movement/input) or `Server_test_sce
 All networked behaviours extend `NetworkBehaviour`. The core classes:
 
 - [Assets/Server/Script/NetworkStartup.cs](Assets/Server/Script/NetworkStartup.cs) — creates/joins a Fusion session
-- [Assets/Server/Script/PlayerSpawner.cs](Assets/Server/Script/PlayerSpawner.cs) — spawns/despawns player prefabs on join/leave
-- [Assets/dev_Bae/NetworkInputManager.cs](Assets/dev_Bae/NetworkInputManager.cs) — implements `INetworkRunnerCallbacks`, polls `PlayerInputHandler` each tick
+- [Assets/dev_Bae/NetworkInputManager.cs](Assets/dev_Bae/NetworkInputManager.cs) — implements `INetworkRunnerCallbacks`; spawns/despawns player prefabs on join/leave, and polls `PlayerInputHandler` each tick
 
 **Critical rule**: always use `Runner.DeltaTime` (not `Time.deltaTime`) inside `FixedUpdateNetwork()` so physics stays deterministic across clients.
 
@@ -48,7 +47,7 @@ UnityEngine.InputSystem
             → PlayerMovement.FixedUpdateNetwork()
 ```
 
-`PlayerInputHandler` sets its static `Local` reference on `Awake` and disables itself when the player lacks input authority (prevents controlling remote avatars).
+`PlayerInputHandler` sets its static `Local` reference in `Spawned()` (after `HasInputAuthority` is available) and disables itself when the player lacks input authority (prevents controlling remote avatars).
 
 ### Player Movement
 

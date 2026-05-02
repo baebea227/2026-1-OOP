@@ -18,7 +18,7 @@ public class NetworkInputManager : MonoBehaviour, INetworkRunnerCallbacks
 
     public void OnPlayerJoined(NetworkRunner runner, PlayerRef player)
     {
-        if (runner.IsServer || runner.GameMode == GameMode.Shared)
+        if (player == runner.LocalPlayer)
         {
             Vector3 spawnPos = new Vector3(player.RawEncoded * 2, 1, 0);
             NetworkObject obj = runner.Spawn(playerPrefab, spawnPos, Quaternion.identity, player);
@@ -30,7 +30,7 @@ public class NetworkInputManager : MonoBehaviour, INetworkRunnerCallbacks
     {
         if (spawnedPlayers.TryGetValue(player, out NetworkObject obj))
         {
-            runner.Despawn(obj);
+            if (obj != null) runner.Despawn(obj);
             spawnedPlayers.Remove(player);
         }
     }
