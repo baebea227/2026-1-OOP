@@ -10,9 +10,13 @@ public class PlayerInputHandler : NetworkBehaviour
     private InputAction lookAction;
     private InputAction sprintAction;
     private InputAction jumpAction;
+    private InputAction grabAction;
+    private InputAction throwAction;
     public static PlayerInputHandler Local;
 
     private bool localJumpPressed;
+    private bool localGrabPressed;
+    private bool localThrowPressed;
     private Vector2 localLookDelta;
 
     void Awake()
@@ -22,6 +26,8 @@ public class PlayerInputHandler : NetworkBehaviour
         lookAction = playerInput.actions["Look"];
         sprintAction = playerInput.actions["Sprint"];
         jumpAction = playerInput.actions["Jump"];
+        grabAction = playerInput.actions["Grab"];
+        throwAction = playerInput.actions["Throw"];
     }
 
     public override void Spawned()
@@ -47,6 +53,10 @@ public class PlayerInputHandler : NetworkBehaviour
 
         if (jumpAction.WasPressedThisFrame())
             localJumpPressed = true;
+        if (grabAction.WasPressedThisFrame())
+            localGrabPressed = true;
+        if (throwAction.WasPressedThisFrame())
+            localThrowPressed = true;
 
         localLookDelta += lookAction.ReadValue<Vector2>();
     }
@@ -59,10 +69,14 @@ public class PlayerInputHandler : NetworkBehaviour
         data.lookDelta = localLookDelta;
         data.isSprinting = sprintAction.IsPressed();
         data.isJumping = localJumpPressed;
+        data.isGrab = localGrabPressed;
+        data.isThrow = localThrowPressed;
 
         input.Set(data);
 
         localJumpPressed = false;
+        localGrabPressed = false;
+        localThrowPressed = false;
         localLookDelta = Vector2.zero;
     }
 }
