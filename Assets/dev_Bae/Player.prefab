@@ -101,6 +101,9 @@ PrefabInstance:
     - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: f1e8e1bfafe7fa241ba6b4181f3eba85, type: 3}
       insertIndex: -1
       addedObject: {fileID: 2741729565030256772}
+    - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: f1e8e1bfafe7fa241ba6b4181f3eba85, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: -6943976382128988104}
   m_SourcePrefab: {fileID: 100100000, guid: f1e8e1bfafe7fa241ba6b4181f3eba85, type: 3}
 --- !u!1 &3983701581572670814 stripped
 GameObject:
@@ -183,6 +186,7 @@ MonoBehaviour:
   - {fileID: 4486338045924145566}
   - {fileID: 3622289007746343646}
   - {fileID: 2741729565030256772}
+  - {fileID: -6943976382128988104}
   ForceRemoteRenderTimeframe: 0
 --- !u!114 &-2861487120538402117
 MonoBehaviour:
@@ -217,8 +221,16 @@ MonoBehaviour:
   walkSpeed: 2
   runSpeed: 5
   sprintSpeed: 8
+  lookSensitivity: 0.15
   gravity: -9.81
   jumpHeight: 1.5
+  _IsFalling:
+    _value: 0
+  _MoveInput: {x: 0, y: 0}
+  _IsSprinting:
+    _value: 0
+  _IsJumping:
+    _value: 0
 --- !u!114 &3622289007746343646
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -248,6 +260,18 @@ MonoBehaviour:
   SyncParent: 0
   _autoAOIOverride: 1
   DisableSharedModeInterpolation: 0
+--- !u!114 &-6943976382128988104
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3983701581572670814}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f288f5e838d885844944da815e7bf994, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::PlayerAnimatorController
 --- !u!95 &7702016294417106334 stripped
 Animator:
   m_CorrespondingSourceObject: {fileID: 5866666021909216657, guid: f1e8e1bfafe7fa241ba6b4181f3eba85, type: 3}

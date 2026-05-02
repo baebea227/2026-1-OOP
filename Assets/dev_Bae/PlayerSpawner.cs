@@ -1,19 +1,35 @@
-using Fusion;
-using Fusion.Sockets;
 using System;
 using System.Collections.Generic;
+using Fusion;
+using Fusion.Sockets;
 using UnityEngine;
 
-public class NetworkInputManager : MonoBehaviour, INetworkRunnerCallbacks
+public class PlayerSpawner : MonoBehaviour, INetworkRunnerCallbacks
 {
-    public void OnInput(NetworkRunner runner, NetworkInput input)
+    public NetworkPrefabRef playerPrefab;
+
+    private Dictionary<PlayerRef, NetworkObject> spawnedPlayers = new Dictionary<PlayerRef, NetworkObject>();
+
+    public void OnPlayerJoined(NetworkRunner runner, PlayerRef player)
     {
-        if (PlayerInputHandler.Local != null)
-            PlayerInputHandler.Local.OnInput(runner, input);
+        if (runner.IsServer)
+        {
+            Vector3 spawnPos = new Vector3(player.RawEncoded * 2, 1, 0);
+            NetworkObject obj = runner.Spawn(playerPrefab, spawnPos, Quaternion.identity, player);
+            spawnedPlayers.Add(player, obj);
+        }
     }
 
-    public void OnPlayerJoined(NetworkRunner runner, PlayerRef player) { }
-    public void OnPlayerLeft(NetworkRunner runner, PlayerRef player) { }
+    public void OnPlayerLeft(NetworkRunner runner, PlayerRef player)
+    {
+        if (spawnedPlayers.TryGetValue(player, out NetworkObject obj))
+        {
+            if (obj != null) runner.Despawn(obj);
+            spawnedPlayers.Remove(player);
+        }
+    }
+
+    public void OnInput(NetworkRunner runner, NetworkInput input) { }
     public void OnInputMissing(NetworkRunner runner, PlayerRef player, NetworkInput input) { }
     public void OnShutdown(NetworkRunner runner, ShutdownReason shutdownReason) { }
     public void OnConnectedToServer(NetworkRunner runner) { }

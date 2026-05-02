@@ -1,7 +1,7 @@
 using UnityEngine;
 using Fusion;
 
-[RequireComponent(typeof(CharacterController), typeof(Animator))]
+[RequireComponent(typeof(CharacterController))]
 public class PlayerMovement : NetworkBehaviour
 {
     [Header("Movement Settings")]
@@ -9,21 +9,28 @@ public class PlayerMovement : NetworkBehaviour
     public float runSpeed = 5f;
     public float sprintSpeed = 8f;
 
-    private CharacterController controller;
+    [Header("Look Settings")]
+    public float lookSensitivity = 0.15f;
 
     [Header("Gravity & Jump")]
     public float gravity = -9.81f;
     public float jumpHeight = 1.5f;
 
-    private Animator animator;
+    private CharacterController controller;
 
     [Networked] private Vector3 PlayerVelocity { get; set; }
-    [Networked] private NetworkBool IsFalling { get; set; }
+    [Networked] public NetworkBool IsFalling { get; set; }
+    [Networked] private float Yaw { get; set; }
+    [Networked] public Vector2 MoveInput { get; set; }
+    [Networked] public NetworkBool IsSprinting { get; set; }
+    [Networked] public NetworkBool IsJumping { get; set; }
+
+    public bool IsGrounded => controller.isGrounded;
+    public float VerticalVelocity => PlayerVelocity.y;
 
     void Awake()
     {
         controller = GetComponent<CharacterController>();
-        animator = GetComponent<Animator>();
     }
 
     public override void FixedUpdateNetwork()
@@ -31,24 +38,35 @@ public class PlayerMovement : NetworkBehaviour
         if (GetInput(out PlayerNetworkInput input))
         {
             bool sprinting = input.isSprinting && input.moveInput.y > 0;
+            bool jumping = input.isJumping && controller.isGrounded;
 
-            HandleGravity(input);
+            MoveInput = input.moveInput;
+            IsSprinting = sprinting;
+            IsJumping = jumping;
+
+            Yaw += input.lookDelta.x * lookSensitivity;
+            transform.rotation = Quaternion.Euler(0f, Yaw, 0f);
+
+            HandleGravity(input, jumping);
             HandleMovement(input, sprinting);
 
             controller.Move(PlayerVelocity * Runner.DeltaTime);
 
-            UpdateAnimations(input, sprinting);
+            if (!controller.isGrounded && PlayerVelocity.y < 0f)
+                IsFalling = true;
+            else if (controller.isGrounded)
+                IsFalling = false;
         }
     }
 
-    private void HandleGravity(PlayerNetworkInput input)
+    private void HandleGravity(PlayerNetworkInput input, bool jumping)
     {
         float v = PlayerVelocity.y;
 
         if (controller.isGrounded && v < 0)
             v = -2f;
 
-        if (input.isJumping && controller.isGrounded)
+        if (jumping)
             v = Mathf.Sqrt(jumpHeight * -2f * gravity);
 
         v += gravity * Runner.DeltaTime;
@@ -64,31 +82,16 @@ public class PlayerMovement : NetworkBehaviour
         else if (input.moveInput.magnitude > 0) speed = walkSpeed;
         else speed = 0f;
 
-        PlayerVelocity = new Vector3(input.moveInput.x * speed, PlayerVelocity.y, input.moveInput.y * speed);
-    }
+        Vector3 right = transform.right;
+        Vector3 forward = transform.forward;
+        right.y = 0f;
+        forward.y = 0f;
+        right.Normalize();
+        forward.Normalize();
 
-    private void UpdateAnimations(PlayerNetworkInput input, bool sprinting)
-    {
-        animator.SetFloat("InputX", input.moveInput.x);
-        animator.SetFloat("InputY", input.moveInput.y);
-        animator.SetFloat("SpeedMagnitude", input.moveInput.magnitude);
-        animator.SetBool("IsSprinting", sprinting);
-        animator.SetBool("IsGrounded", controller.isGrounded);
+        Vector3 moveDir = right * input.moveInput.x + forward * input.moveInput.y;
+        if (moveDir.sqrMagnitude > 1f) moveDir.Normalize();
 
-        if (input.isJumping && controller.isGrounded)
-            animator.SetTrigger("Jump");
-
-        if (!controller.isGrounded && PlayerVelocity.y < 0f)
-        {
-            if (!IsFalling)
-            {
-                IsFalling = true;
-                animator.SetTrigger("Fall");
-            }
-        }
-        else if (controller.isGrounded)
-        {
-            IsFalling = false;
-        }
+        PlayerVelocity = new Vector3(moveDir.x * speed, PlayerVelocity.y, moveDir.z * speed);
     }
 }
