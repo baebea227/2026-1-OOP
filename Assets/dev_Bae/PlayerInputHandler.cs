@@ -24,15 +24,19 @@ public class PlayerInputHandler : NetworkBehaviour
 
     public override void Spawned()
     {
-        // 이 캐릭터의 입력 권한이 나에게 없다면 PlayerInput을 끕니다. (상대방 움직임 방지)
         if (HasInputAuthority)
         {
-            Local = this; // 로컬 플레이어의 입력 핸들러를 static으로 저장 (편의용)
+            Local = this;
         }
         else
         {
             playerInput.enabled = false;
         }
+    }
+
+    public override void Despawned(NetworkRunner runner, bool hasState)
+    {
+        if (HasInputAuthority) Local = null;
     }
 
     void Update()

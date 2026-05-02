@@ -1,28 +1,28 @@
 using UnityEngine;
 using UnityEngine.InputSystem;
-using Fusion; // 퓨전 네임스페이스 추가
+using Fusion;
 
 [RequireComponent(typeof(CharacterController), typeof(Animator))]
-public class PlayerMovement : NetworkBehaviour // NetworkBehaviour 상속
+public class PlayerMovement : NetworkBehaviour
 {
     [Header("Movement Settings")]
     public float walkSpeed = 2f;
     public float runSpeed = 5f;
     public float sprintSpeed = 8f;
-    
-    private float currentSpeed;
+
     private CharacterController controller;
 
     [Header("Gravity & Jump")]
     public float gravity = -9.81f;
     public float jumpHeight = 1.5f;
-    private float verticalVelocity;
-    private Vector3 playerVelocity;
 
     [Header("Components")]
     private Animator animator;
-    
-    private bool isFalling = false;
+
+    // 늦게 접속한 클라이언트도 올바른 초기 상태를 받을 수 있도록 [Networked]로 선언
+    [Networked] private float VerticalVelocity { get; set; }
+    [Networked] private Vector3 PlayerVelocity { get; set; }
+    [Networked] private NetworkBool IsFalling { get; set; }
 
     void Awake()
     {
@@ -30,17 +30,14 @@ public class PlayerMovement : NetworkBehaviour // NetworkBehaviour 상속
         animator = GetComponent<Animator>();
     }
 
-    // 퓨전은 Update 대신 이 메서드에서 물리/이동을 처리합니다.
     public override void FixedUpdateNetwork()
     {
-        // GetInput을 통해 나 자신 또는 서버로부터 '동기화된 입력값'을 가져옵니다.
         if (GetInput(out PlayerNetworkInput input))
         {
             HandleGravity(input);
             HandleMovement(input);
-            
-            // Time.deltaTime 대신 Runner.DeltaTime을 반드시 사용해야 합니다.
-            controller.Move(playerVelocity * Runner.DeltaTime);
+
+            controller.Move(PlayerVelocity * Runner.DeltaTime);
 
             UpdateAnimations(input);
         }
@@ -48,57 +45,57 @@ public class PlayerMovement : NetworkBehaviour // NetworkBehaviour 상속
 
     private void HandleGravity(PlayerNetworkInput input)
     {
-        if (controller.isGrounded && verticalVelocity < 0)
-        {
-            verticalVelocity = -2f;
-        }
+        float v = VerticalVelocity;
 
-        // 동기화된 점프 입력 확인
+        if (controller.isGrounded && v < 0)
+            v = -2f;
+
         if (input.isJumping && controller.isGrounded)
-        {
-            verticalVelocity = Mathf.Sqrt(jumpHeight * -2f * gravity);
-            animator.SetTrigger("Jump");
-        }
+            v = Mathf.Sqrt(jumpHeight * -2f * gravity);
 
-        verticalVelocity += gravity * Runner.DeltaTime;
-        playerVelocity.y = verticalVelocity;
+        v += gravity * Runner.DeltaTime;
+        VerticalVelocity = v;
+
+        PlayerVelocity = new Vector3(PlayerVelocity.x, v, PlayerVelocity.z);
     }
 
     private void HandleMovement(PlayerNetworkInput input)
     {
-        bool actualSprinting = input.isSprinting && input.moveInput.y > 0;
+        bool sprinting = input.isSprinting && input.moveInput.y > 0;
 
-        if (actualSprinting) currentSpeed = sprintSpeed;
-        else if (input.moveInput.magnitude > 0.5f) currentSpeed = runSpeed;
-        else if (input.moveInput.magnitude > 0) currentSpeed = walkSpeed;
-        else currentSpeed = 0f;
+        float speed;
+        if (sprinting) speed = sprintSpeed;
+        else if (input.moveInput.magnitude > 0.5f) speed = runSpeed;
+        else if (input.moveInput.magnitude > 0) speed = walkSpeed;
+        else speed = 0f;
 
-        playerVelocity.x = input.moveInput.x * currentSpeed;
-        playerVelocity.z = input.moveInput.y * currentSpeed;
+        PlayerVelocity = new Vector3(input.moveInput.x * speed, PlayerVelocity.y, input.moveInput.y * speed);
     }
 
     private void UpdateAnimations(PlayerNetworkInput input)
     {
+        bool sprinting = input.isSprinting && input.moveInput.y > 0;
+
         animator.SetFloat("InputX", input.moveInput.x);
         animator.SetFloat("InputY", input.moveInput.y);
-        animator.SetFloat("SpeedMagnitude", input.moveInput.magnitude); 
-
-        bool actualSprinting = input.isSprinting && input.moveInput.y > 0;
-        animator.SetBool("IsSprinting", actualSprinting);
-
+        animator.SetFloat("SpeedMagnitude", input.moveInput.magnitude);
+        animator.SetBool("IsSprinting", sprinting);
         animator.SetBool("IsGrounded", controller.isGrounded);
 
-        if (!controller.isGrounded && verticalVelocity < 0f)
+        if (input.isJumping && controller.isGrounded)
+            animator.SetTrigger("Jump");
+
+        if (!controller.isGrounded && VerticalVelocity < 0f)
         {
-            if (!isFalling)
+            if (!IsFalling)
             {
-                isFalling = true;
-                animator.SetTrigger("Fall"); 
+                IsFalling = true;
+                animator.SetTrigger("Fall");
             }
         }
         else if (controller.isGrounded)
         {
-            isFalling = false; 
+            IsFalling = false;
         }
     }
 }
