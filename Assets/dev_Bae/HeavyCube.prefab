@@ -15,6 +15,7 @@ GameObject:
   - component: {fileID: -8325127813156877248}
   - component: {fileID: -1338053659435860437}
   - component: {fileID: 5952641740882698876}
+  - component: {fileID: 6627342424668115511}
   m_Layer: 0
   m_Name: HeavyCube
   m_TagString: Untagged
@@ -174,4 +175,28 @@ MonoBehaviour:
   NestedObjects: []
   NetworkedBehaviours:
   - {fileID: -8325127813156877248}
+  - {fileID: 6627342424668115511}
   ForceRemoteRenderTimeframe: 0
+--- !u!114 &6627342424668115511
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5414941576226891795}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 0a591d221a634417e9827eb58e17de84, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Fusion.Addons.Physics::Fusion.Addons.Physics.NetworkRigidbody3D
+  _stateAuthorityChangeErrorCorrectionDelta: 0
+  SyncScale: 0
+  SyncParent: 1
+  _interpolationTarget: {fileID: 0}
+  UsePreciseRotation: 0
+  UseRenderSleepThresholds: 1
+  RenderThresholds:
+    UseEnergy: 1
+    Position: 0.01
+    Rotation: 0.01
+    Scale: 0.01

@@ -1,6 +1,7 @@
+using System;
+using System.Collections.Generic;
 using Fusion;
 using Fusion.Sockets;
-using System.Collections.Generic;
 using UnityEngine;
 
 public class NetworkInputManager : MonoBehaviour, INetworkRunnerCallbacks

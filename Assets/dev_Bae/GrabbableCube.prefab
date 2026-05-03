@@ -12,9 +12,10 @@ GameObject:
   - component: {fileID: 2218436380752065560}
   - component: {fileID: 3217777013491332221}
   - component: {fileID: 8848466906365644272}
-  - component: {fileID: 6798047742219852512}
-  - component: {fileID: -6166102338743226309}
-  - component: {fileID: 3815693908537745616}
+  - component: {fileID: 6822532601872402670}
+  - component: {fileID: 2924879556197959037}
+  - component: {fileID: 573502009707799074}
+  - component: {fileID: 2021356944407278399}
   m_Layer: 0
   m_Name: GrabbableCube
   m_TagString: Untagged
@@ -115,7 +116,7 @@ BoxCollider:
   serializedVersion: 3
   m_Size: {x: 1, y: 1, z: 1}
   m_Center: {x: 0, y: 0, z: 0}
---- !u!54 &6798047742219852512
+--- !u!54 &6822532601872402670
 Rigidbody:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -142,7 +143,7 @@ Rigidbody:
   m_Interpolate: 0
   m_Constraints: 0
   m_CollisionDetection: 0
---- !u!114 &-6166102338743226309
+--- !u!114 &2924879556197959037
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -154,14 +155,15 @@ MonoBehaviour:
   m_Script: {fileID: -1552182283, guid: e725a070cec140c4caffb81624c8c787, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Fusion.Runtime.dll::Fusion.NetworkObject
-  SortKey: 3735964075
+  SortKey: 3719518573
   ObjectInterest: 1
   Flags: 262145
   NestedObjects: []
   NetworkedBehaviours:
-  - {fileID: 3815693908537745616}
+  - {fileID: 573502009707799074}
+  - {fileID: 2021356944407278399}
   ForceRemoteRenderTimeframe: 0
---- !u!114 &3815693908537745616
+--- !u!114 &573502009707799074
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -175,3 +177,26 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::GrabbableObject
   weight: 10
   throwSpeed: 10
+--- !u!114 &2021356944407278399
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5414941576226891795}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 0a591d221a634417e9827eb58e17de84, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Fusion.Addons.Physics::Fusion.Addons.Physics.NetworkRigidbody3D
+  _stateAuthorityChangeErrorCorrectionDelta: 0
+  SyncScale: 0
+  SyncParent: 1
+  _interpolationTarget: {fileID: 0}
+  UsePreciseRotation: 0
+  UseRenderSleepThresholds: 1
+  RenderThresholds:
+    UseEnergy: 1
+    Position: 0.01
+    Rotation: 0.01
+    Scale: 0.01
