@@ -232,6 +232,9 @@ PrefabInstance:
     - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: f1e8e1bfafe7fa241ba6b4181f3eba85, type: 3}
       insertIndex: -1
       addedObject: {fileID: 8209460995553992989}
+    - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: f1e8e1bfafe7fa241ba6b4181f3eba85, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 7657610283832748464}
   m_SourcePrefab: {fileID: 100100000, guid: f1e8e1bfafe7fa241ba6b4181f3eba85, type: 3}
 --- !u!1 &1434906675438024949 stripped
 GameObject:
@@ -305,11 +308,19 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 8d92b368fcee95c4f89f76cf9d5a9393, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PlayerMovement
+  pushForce: 3
   walkSpeed: 2
   runSpeed: 5
   sprintSpeed: 8
   gravity: -9.81
   jumpHeight: 1.5
+  _IsFalling:
+    _value: 0
+  _MoveInput: {x: 0, y: 0}
+  _IsSprinting:
+    _value: 0
+  _IsJumping:
+    _value: 0
 --- !u!114 &8209460995553992989
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -328,7 +339,27 @@ MonoBehaviour:
   NestedObjects: []
   NetworkedBehaviours:
   - {fileID: 6500410329946774297}
+  - {fileID: 7657610283832748464}
   ForceRemoteRenderTimeframe: 0
+--- !u!114 &7657610283832748464
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1434906675438024949}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 378411a89480da345945c2f888327a2d, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Fusion.Unity::Fusion.NetworkCharacterController
+  _stateAuthorityChangeErrorCorrectionDelta: 0
+  gravity: -20
+  jumpImpulse: 8
+  acceleration: 10
+  braking: 10
+  maxSpeed: 2
+  rotationSpeed: 15
 --- !u!4 &1774981925931426383 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: -8679921383154817045, guid: f1e8e1bfafe7fa241ba6b4181f3eba85, type: 3}
