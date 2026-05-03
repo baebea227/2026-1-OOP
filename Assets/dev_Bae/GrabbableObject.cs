@@ -8,6 +8,10 @@ public class GrabbableObject : InteractableObject, IPickupable, IPushable
 
     [Networked] private NetworkObject HolderObject { get; set; }
 
+    // State Authority에서만 유효한 로컬 상태
+    private float lastPushTime = -1f;
+    private const float pushCooldown = 0.1f;
+
     public void OnPickup(PlayerGrabHandler grabber)
     {
         if (Object.HasStateAuthority) ApplyPickup(grabber.Object);
@@ -57,10 +61,16 @@ public class GrabbableObject : InteractableObject, IPickupable, IPushable
         HolderObject = null;
     }
 
-    // StateAuthority측 재검증 — 호출 시점과 RPC 도착 시점 사이 잡힘 상태 변화 대응
+    // StateAuthority측 재검증 — 호출 시점과 RPC 도착 시점 사이 잡힘 상태 변화 대응.
+    // 접촉 매 틱 누적 임펄스로 큐브가 튀어나가던 문제 차단을 위해 쿨다운 적용.
     private void ApplyPush(Vector3 force)
     {
         if (HolderObject != null) return;
+
+        float now = Runner.SimulationTime;
+        if (now - lastPushTime < pushCooldown) return;
+        lastPushTime = now;
+
         rb.AddForce(force, ForceMode.Impulse);
     }
 
