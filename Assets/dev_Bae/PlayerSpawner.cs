@@ -9,6 +9,7 @@ public class PlayerSpawner : MonoBehaviour, INetworkRunnerCallbacks
 
     private Dictionary<PlayerRef, NetworkObject> spawnedPlayers = new Dictionary<PlayerRef, NetworkObject>();
 
+    // Host 모드: 호스트만 폰을 Spawn하고 StateAuthority를 가짐. 클라는 InputAuthority만 보유.
     public void OnPlayerJoined(NetworkRunner runner, PlayerRef player)
     {
         if (runner.IsServer)
