@@ -6,6 +6,8 @@ using UnityEngine;
 public class PlayerSpawner : MonoBehaviour, INetworkRunnerCallbacks
 {
     public NetworkPrefabRef playerPrefab;
+    [Tooltip("순서대로 사용. 비어있거나 부족하면 RawEncoded 기반 폴백 위치로 스폰")]
+    public Transform[] spawnPoints;
 
     private Dictionary<PlayerRef, NetworkObject> spawnedPlayers = new Dictionary<PlayerRef, NetworkObject>();
 
@@ -14,8 +16,14 @@ public class PlayerSpawner : MonoBehaviour, INetworkRunnerCallbacks
     {
         if (!runner.IsServer) return;
 
-        Vector3 spawnPos = new Vector3(player.RawEncoded * 2, 1, 0);
-        NetworkObject obj = runner.Spawn(playerPrefab, spawnPos, Quaternion.identity, player);
+        int idx = spawnedPlayers.Count;
+        Vector3 spawnPos = (spawnPoints != null && idx < spawnPoints.Length && spawnPoints[idx] != null)
+            ? spawnPoints[idx].position
+            : new Vector3(player.RawEncoded * 2, 1, 0);
+        Quaternion spawnRot = (spawnPoints != null && idx < spawnPoints.Length && spawnPoints[idx] != null)
+            ? spawnPoints[idx].rotation
+            : Quaternion.identity;
+        NetworkObject obj = runner.Spawn(playerPrefab, spawnPos, spawnRot, player);
         if (obj == null) return;
 
         spawnedPlayers.Add(player, obj);

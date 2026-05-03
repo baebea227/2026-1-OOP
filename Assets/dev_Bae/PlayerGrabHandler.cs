@@ -15,6 +15,16 @@ public class PlayerGrabHandler : NetworkBehaviour
 
     private GrabbableObject heldObject;
 
+    void Awake()
+    {
+        // 인스펙터 미할당 시 자식 카메라로 폴백 — 누락된 참조로 잡기/던지기가 조용히 실패하는 것 방지
+        if (cameraTransform == null)
+        {
+            var cam = GetComponentInChildren<Camera>(true);
+            if (cam != null) cameraTransform = cam.transform;
+        }
+    }
+
     public override void FixedUpdateNetwork()
     {
         if (!HasInputAuthority) return;
