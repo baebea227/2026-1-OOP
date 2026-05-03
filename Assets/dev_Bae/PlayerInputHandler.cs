@@ -17,7 +17,8 @@ public class PlayerInputHandler : NetworkBehaviour
     private bool localJumpPressed;
     private bool localGrabPressed;
     private bool localThrowPressed;
-    private Vector2 localLookDelta;
+    private float localYaw;
+    public float lookSensitivity = 0.15f;
 
     void Awake()
     {
@@ -59,7 +60,7 @@ public class PlayerInputHandler : NetworkBehaviour
         if (throwAction.WasPressedThisFrame())
             localThrowPressed = true;
 
-        localLookDelta += lookAction.ReadValue<Vector2>();
+        localYaw += lookAction.ReadValue<Vector2>().x * lookSensitivity;
     }
 
     public void OnInput(NetworkRunner runner, NetworkInput input)
@@ -67,7 +68,7 @@ public class PlayerInputHandler : NetworkBehaviour
         PlayerNetworkInput data = new PlayerNetworkInput();
 
         data.moveInput = moveAction.ReadValue<Vector2>();
-        data.lookDelta = localLookDelta;
+        data.yaw = localYaw;
         data.isSprinting = sprintAction.IsPressed();
         data.isJumping = localJumpPressed;
         data.isGrab = localGrabPressed;
@@ -78,6 +79,5 @@ public class PlayerInputHandler : NetworkBehaviour
         localJumpPressed = false;
         localGrabPressed = false;
         localThrowPressed = false;
-        localLookDelta = Vector2.zero;
     }
 }

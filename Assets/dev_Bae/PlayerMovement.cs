@@ -39,7 +39,7 @@ public class PlayerMovement : NetworkBehaviour
     {
         if (GetInput(out PlayerNetworkInput input))
         {
-            Yaw += input.lookDelta.x * lookSensitivity;
+            Yaw = input.yaw;
             transform.rotation = Quaternion.Euler(0f, Yaw, 0f);
 
             bool sprinting = input.isSprinting && input.moveInput.y > 0;
@@ -110,5 +110,17 @@ public class PlayerMovement : NetworkBehaviour
         if (moveDir.sqrMagnitude > 1f) moveDir.Normalize();
 
         PlayerVelocity = new Vector3(moveDir.x * speed, PlayerVelocity.y, moveDir.z * speed);
+    }
+
+    public override void Spawned()
+    {
+        // HasInputAuthority: 이 기기에서 조종하는 캐릭터인가? (로컬 클라이언트)
+        // HasStateAuthority: 이 오브젝트의 상태를 관리하는가? (호스트/서버)
+        // 둘 다 False라면 완벽한 상대방(Proxy) 캐릭터를 의미합니다.
+        if (!HasInputAuthority && !HasStateAuthority)
+        {
+            // 상대방의 CharacterController는 꺼서 NetworkTransform이 방해받지 않게 합니다.
+            controller.enabled = false;
+        }
     }
 }
