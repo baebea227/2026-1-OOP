@@ -16,14 +16,16 @@ public class FirstPersonCamera : NetworkBehaviour
     void Awake()
     {
         cam = GetComponent<Camera>();
-        var playerInput = GetComponentInParent<PlayerInput>();
-        if (playerInput != null) lookAction = playerInput.actions["Look"];
     }
 
     public override void Spawned()
     {
         if (HasInputAuthority)
         {
+            // PlayerInputHandler가 단일 소스로 lookAction을 보유 — 여기선 참조만 가져옴
+            var handler = GetComponentInParent<PlayerInputHandler>();
+            if (handler != null) lookAction = handler.LookAction;
+
             cam.enabled = true;
             Cursor.lockState = CursorLockMode.Locked;
             Cursor.visible = false;

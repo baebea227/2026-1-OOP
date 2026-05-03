@@ -14,6 +14,8 @@ public class PlayerInputHandler : NetworkBehaviour
     private InputAction throwAction;
     public static PlayerInputHandler Local;
 
+    public InputAction LookAction => lookAction;
+
     private bool localJumpPressed;
     private bool localGrabPressed;
     private bool localThrowPressed;
