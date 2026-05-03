@@ -293,6 +293,10 @@ PrefabInstance:
       propertyPath: m_AnimatePhysics
       value: 0
       objectReference: {fileID: 0}
+    - target: {fileID: 5866666021909216657, guid: f1e8e1bfafe7fa241ba6b4181f3eba85, type: 3}
+      propertyPath: m_ApplyRootMotion
+      value: 0
+      objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects:
@@ -497,6 +501,7 @@ MonoBehaviour:
   throwSpeed: 10
   holdPoint: {fileID: 2908511004687505858}
   cameraTransform: {fileID: 6876907299997132427}
+  _HeldGrabbable: {fileID: 0}
 --- !u!114 &8032373281288906341
 MonoBehaviour:
   m_ObjectHideFlags: 0

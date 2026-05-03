@@ -13,7 +13,8 @@ public class PlayerGrabHandler : NetworkBehaviour
 
     public Transform HoldPoint => holdPoint;
 
-    private GrabbableObject heldObject;
+    // 호스트가 ApplyPickup/Drop/Throw에서 함께 갱신 — resim 시 스냅샷으로 정확히 복원되어 토글 뒤집힘 방지
+    [Networked] public NetworkObject HeldGrabbable { get; set; }
 
     void Awake()
     {
@@ -32,14 +33,18 @@ public class PlayerGrabHandler : NetworkBehaviour
 
         if (input.isGrab)
         {
-            if (heldObject == null)
+            if (HeldGrabbable == null)
                 TryGrab();
             else
-                Drop();
+                HeldGrabbable.GetComponent<GrabbableObject>().OnDrop(this);
         }
 
-        if (input.isThrow && heldObject != null)
-            Throw();
+        if (input.isThrow && HeldGrabbable != null)
+        {
+            if (cameraTransform == null) return;
+            Vector3 velocity = cameraTransform.forward * throwSpeed;
+            HeldGrabbable.GetComponent<GrabbableObject>().OnThrow(this, velocity);
+        }
     }
 
     private void TryGrab()
@@ -53,21 +58,6 @@ public class PlayerGrabHandler : NetworkBehaviour
         var grabbable = hit.collider.GetComponent<GrabbableObject>();
         if (grabbable == null) return;
 
-        heldObject = grabbable;
-        heldObject.OnPickup(this);
-    }
-
-    private void Drop()
-    {
-        heldObject.OnDrop(this);
-        heldObject = null;
-    }
-
-    private void Throw()
-    {
-        if (cameraTransform == null) return;
-        Vector3 velocity = cameraTransform.forward * throwSpeed;
-        heldObject.OnThrow(this, velocity);
-        heldObject = null;
+        grabbable.OnPickup(this);
     }
 }

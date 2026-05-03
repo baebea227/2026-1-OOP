@@ -42,6 +42,7 @@ public class GrabbableObject : InteractableObject, IPickupable, IPushable
     {
         if (HolderObject != null) return;
         HolderObject = holder;
+        holder.GetComponent<PlayerGrabHandler>().HeldGrabbable = Object;
         rb.linearVelocity = Vector3.zero;
         rb.angularVelocity = Vector3.zero;
     }
@@ -50,6 +51,7 @@ public class GrabbableObject : InteractableObject, IPickupable, IPushable
     private void ApplyThrow(NetworkObject thrower, Vector3 velocity)
     {
         if (HolderObject != thrower) return;
+        thrower.GetComponent<PlayerGrabHandler>().HeldGrabbable = null;
         HolderObject = null;
         rb.isKinematic = false;
         rb.linearVelocity = velocity;
@@ -59,6 +61,7 @@ public class GrabbableObject : InteractableObject, IPickupable, IPushable
     private void ApplyDrop(NetworkObject dropper)
     {
         if (HolderObject != dropper) return;
+        dropper.GetComponent<PlayerGrabHandler>().HeldGrabbable = null;
         HolderObject = null;
     }
 
