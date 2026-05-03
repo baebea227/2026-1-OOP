@@ -39,27 +39,29 @@ public class PlayerMovement : NetworkBehaviour
     {
         if (GetInput(out PlayerNetworkInput input))
         {
+            Yaw += input.lookDelta.x * lookSensitivity;
+            transform.rotation = Quaternion.Euler(0f, Yaw, 0f);
+
             bool sprinting = input.isSprinting && input.moveInput.y > 0;
+            
+            // 주의: 완벽한 점프 동기화를 원한다면 controller.isGrounded 대신
+            // Physics.Raycast로 직접 발밑을 쏴서 땅인지 판별하는 커스텀 메서드를 만들어 쓰는 것을 강력히 권장합니다.
             bool jumping = input.isJumping && controller.isGrounded;
 
             MoveInput = input.moveInput;
             IsSprinting = sprinting;
             IsJumping = jumping;
 
-            Yaw += input.lookDelta.x * lookSensitivity;
-
             HandleGravity(jumping);
             HandleMovement(input, sprinting);
+
+            controller.Move(PlayerVelocity * Runner.DeltaTime);
 
             if (!controller.isGrounded && PlayerVelocity.y < 0f)
                 IsFalling = true;
             else if (controller.isGrounded)
                 IsFalling = false;
         }
-
-        // 로컬/리모트 모두: 네트워크 동기화된 Yaw·PlayerVelocity로 실제 이동 적용
-        transform.rotation = Quaternion.Euler(0f, Yaw, 0f);
-        controller.Move(PlayerVelocity * Runner.DeltaTime);
     }
 
     private void HandleGravity(bool jumping)

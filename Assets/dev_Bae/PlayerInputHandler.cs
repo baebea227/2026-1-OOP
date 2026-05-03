@@ -32,7 +32,20 @@ public class PlayerInputHandler : NetworkBehaviour
 
     public override void Spawned()
     {
-        if (!HasInputAuthority) playerInput.enabled = false;
+        if (!HasInputAuthority) 
+    {
+        playerInput.enabled = false;
+        
+        // 1. 상대방의 오디오 리스너 끄기
+        AudioListener audioListener = GetComponentInChildren<AudioListener>();
+        if (audioListener != null) 
+            audioListener.enabled = false;
+
+        // (보너스) 상대방의 카메라도 내 화면에서 렌더링되지 않도록 끄기
+        Camera cam = GetComponentInChildren<Camera>();
+        if (cam != null) 
+            cam.gameObject.SetActive(false);
+    }
     }
 
     public override void Render()

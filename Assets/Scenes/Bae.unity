@@ -202,6 +202,7 @@ GameObject:
   - component: {fileID: 997109168}
   - component: {fileID: 997109167}
   - component: {fileID: 997109169}
+  - component: {fileID: 997109170}
   m_Layer: 0
   m_Name: NetworkInputManager
   m_TagString: Untagged
@@ -300,6 +301,23 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::PlayerSpawner
   playerPrefab:
     RawGuidValue: 834c282afce20cd4cb84401337e727f7
+--- !u!114 &997109170
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 997109163}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 7b5a1ff9dee264bfd829a39e6542dcbd, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Fusion.Addons.Physics::Fusion.Addons.Physics.RunnerSimulatePhysics3D
+  _physicsAuthority: 2
+  _physicsTiming: 3
+  ClientPhysicsSimulation: 3
+  DeltaTimeMultiplier: 1
+  SetUnityFixedTimestep: 0
 --- !u!1001 &1328872520
 PrefabInstance:
   m_ObjectHideFlags: 0
