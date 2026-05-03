@@ -47,18 +47,19 @@ public class PlayerMovement : NetworkBehaviour
             IsJumping = jumping;
 
             Yaw += input.lookDelta.x * lookSensitivity;
-            transform.rotation = Quaternion.Euler(0f, Yaw, 0f);
 
             HandleGravity(input, jumping);
             HandleMovement(input, sprinting);
-
-            controller.Move(PlayerVelocity * Runner.DeltaTime);
 
             if (!controller.isGrounded && PlayerVelocity.y < 0f)
                 IsFalling = true;
             else if (controller.isGrounded)
                 IsFalling = false;
         }
+
+        // 로컬/리모트 모두: 네트워크 동기화된 Yaw·PlayerVelocity로 실제 이동 적용
+        transform.rotation = Quaternion.Euler(0f, Yaw, 0f);
+        controller.Move(PlayerVelocity * Runner.DeltaTime);
     }
 
     private void HandleGravity(PlayerNetworkInput input, bool jumping)
