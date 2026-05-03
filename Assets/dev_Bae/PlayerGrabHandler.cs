@@ -43,7 +43,6 @@ public class PlayerGrabHandler : NetworkBehaviour
         var grabbable = hit.collider.GetComponent<GrabbableObject>();
         if (grabbable == null) return;
 
-        grabbable.Object.RequestStateAuthority();
         heldObject = grabbable;
         heldObject.OnPickup(this);
     }
