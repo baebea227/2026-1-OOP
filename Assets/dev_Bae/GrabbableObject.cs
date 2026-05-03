@@ -32,8 +32,14 @@ public class GrabbableObject : InteractableObject, IPickupable, IPushable
     public void OnPush(Vector3 force, PlayerRef pusher)
     {
         if (currentHolder != null) return;
-        rb.AddForce(force, ForceMode.Impulse);
+        if (Object.HasStateAuthority)
+            rb.AddForce(force, ForceMode.Impulse);
+        else
+            RPC_Push(force);
     }
+
+    [Rpc(RpcSources.All, RpcTargets.StateAuthority)]
+    private void RPC_Push(Vector3 force) => rb.AddForce(force, ForceMode.Impulse);
 
     public override void FixedUpdateNetwork()
     {
