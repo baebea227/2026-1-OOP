@@ -49,7 +49,7 @@ public class PlayerGrabHandler : NetworkBehaviour
 
     private void Drop()
     {
-        heldObject.OnDrop();
+        heldObject.OnDrop(this);
         heldObject = null;
     }
 
@@ -57,7 +57,7 @@ public class PlayerGrabHandler : NetworkBehaviour
     {
         if (cameraTransform == null) return;
         Vector3 velocity = cameraTransform.forward * throwSpeed;
-        heldObject.OnThrow(velocity);
+        heldObject.OnThrow(this, velocity);
         heldObject = null;
     }
 }
