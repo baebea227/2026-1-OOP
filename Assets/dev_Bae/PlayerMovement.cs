@@ -48,7 +48,7 @@ public class PlayerMovement : NetworkBehaviour
 
             Yaw += input.lookDelta.x * lookSensitivity;
 
-            HandleGravity(input, jumping);
+            HandleGravity(jumping);
             HandleMovement(input, sprinting);
 
             if (!controller.isGrounded && PlayerVelocity.y < 0f)
@@ -62,7 +62,7 @@ public class PlayerMovement : NetworkBehaviour
         controller.Move(PlayerVelocity * Runner.DeltaTime);
     }
 
-    private void HandleGravity(PlayerNetworkInput input, bool jumping)
+    private void HandleGravity(bool jumping)
     {
         float v = PlayerVelocity.y;
 
