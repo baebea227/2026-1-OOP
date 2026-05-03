@@ -12,8 +12,6 @@ public class PlayerInputHandler : NetworkBehaviour
     private InputAction jumpAction;
     private InputAction grabAction;
     private InputAction throwAction;
-    public static PlayerInputHandler Local;
-
     public InputAction LookAction => lookAction;
 
     private bool localJumpPressed;
@@ -34,19 +32,7 @@ public class PlayerInputHandler : NetworkBehaviour
 
     public override void Spawned()
     {
-        if (HasInputAuthority)
-        {
-            Local = this;
-        }
-        else
-        {
-            playerInput.enabled = false;
-        }
-    }
-
-    public override void Despawned(NetworkRunner runner, bool hasState)
-    {
-        if (HasInputAuthority) Local = null;
+        if (!HasInputAuthority) playerInput.enabled = false;
     }
 
     public override void Render()

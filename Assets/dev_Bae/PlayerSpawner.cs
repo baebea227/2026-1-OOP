@@ -12,12 +12,15 @@ public class PlayerSpawner : MonoBehaviour, INetworkRunnerCallbacks
     // Host 모드: 호스트만 폰을 Spawn하고 StateAuthority를 가짐. 클라는 InputAuthority만 보유.
     public void OnPlayerJoined(NetworkRunner runner, PlayerRef player)
     {
-        if (runner.IsServer)
-        {
-            Vector3 spawnPos = new Vector3(player.RawEncoded * 2, 1, 0);
-            NetworkObject obj = runner.Spawn(playerPrefab, spawnPos, Quaternion.identity, player);
-            if (obj != null) spawnedPlayers.Add(player, obj);
-        }
+        if (!runner.IsServer) return;
+
+        Vector3 spawnPos = new Vector3(player.RawEncoded * 2, 1, 0);
+        NetworkObject obj = runner.Spawn(playerPrefab, spawnPos, Quaternion.identity, player);
+        if (obj == null) return;
+
+        spawnedPlayers.Add(player, obj);
+        // 모든 피어가 runner.GetPlayerObject(player)로 자기 폰을 찾을 수 있도록 등록
+        runner.SetPlayerObject(player, obj);
     }
 
     public void OnPlayerLeft(NetworkRunner runner, PlayerRef player)

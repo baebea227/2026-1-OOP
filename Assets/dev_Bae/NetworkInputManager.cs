@@ -7,8 +7,12 @@ public class NetworkInputManager : MonoBehaviour, INetworkRunnerCallbacks
 {
     public void OnInput(NetworkRunner runner, NetworkInput input)
     {
-        if (PlayerInputHandler.Local != null)
-            PlayerInputHandler.Local.OnInput(runner, input);
+        // Multi-Peer 안전: static 대신 Runner별 SetPlayerObject 등록값으로 로컬 폰 조회
+        var localObj = runner.GetPlayerObject(runner.LocalPlayer);
+        if (localObj == null) return;
+
+        var handler = localObj.GetComponent<PlayerInputHandler>();
+        if (handler != null) handler.OnInput(runner, input);
     }
 
     public void OnPlayerJoined(NetworkRunner runner, PlayerRef player) { }
