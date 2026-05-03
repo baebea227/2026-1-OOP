@@ -51,6 +51,7 @@ public class GrabbableObject : InteractableObject, IPickupable, IPushable
     {
         if (HolderObject != thrower) return;
         HolderObject = null;
+        rb.isKinematic = false;
         rb.linearVelocity = velocity;
         rb.angularVelocity = Vector3.zero;
     }
