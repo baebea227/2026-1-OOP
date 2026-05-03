@@ -1,4 +1,3 @@
-using System;
 using System.Collections.Generic;
 using Fusion;
 using Fusion.Sockets;
@@ -16,7 +15,7 @@ public class PlayerSpawner : MonoBehaviour, INetworkRunnerCallbacks
         {
             Vector3 spawnPos = new Vector3(player.RawEncoded * 2, 1, 0);
             NetworkObject obj = runner.Spawn(playerPrefab, spawnPos, Quaternion.identity, player);
-            spawnedPlayers.Add(player, obj);
+            if (obj != null) spawnedPlayers.Add(player, obj);
         }
     }
 
