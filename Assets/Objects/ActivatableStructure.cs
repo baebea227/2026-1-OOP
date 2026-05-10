@@ -3,7 +3,6 @@ using UnityEngine;
 
 public class ActivatableStructure : NetworkBehaviour, IActivatable
 {
-    
     public bool IsActive { get; set;}
     [SerializeField] bool firstState;
     [SerializeField] int triggerCnt;

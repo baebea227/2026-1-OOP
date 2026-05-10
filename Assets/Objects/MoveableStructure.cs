@@ -7,7 +7,7 @@ public class MoveableStructure : NetworkBehaviour, IActivatable
     public bool IsActive { get; set;}
     [SerializeField] bool firstState;
     [SerializeField] int triggerCnt;
-    [SerializeField] int curTriggerCnt;
+    int curTriggerCnt;
 
     [SerializeField] float moveTime;
     float curMoveTime;

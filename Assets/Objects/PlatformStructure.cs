@@ -28,42 +28,25 @@ public class PlatformStructure : NetworkBehaviour, IActivatable
     
     public void OnActivate(int n)
     {
-        if(triggerCnt <= 1)
+        curTriggerCnt += n;
+        if(curTriggerCnt >= triggerCnt)
         {
-            if(!IsActive)
-            {
-                Activate();
-            }
-            else
-            {
-                Deactivate();
-            }            
-            Debug.Log("activate" + IsActive);
+            Activate();
         }
         else
         {
-            curTriggerCnt += n;
-            if(curTriggerCnt == triggerCnt)
-            {
-                Activate();
-            }
-            else
-            {
-                Deactivate();
-            }
+            Deactivate();
         }
     }
 
     public void Activate()
     {
         IsActive = true;
-        Debug.Log("Activate");
     }
 
     public void Deactivate()
     {
         IsActive = false;
-        Debug.Log("Deactivate");
     }
 
     void Move()
