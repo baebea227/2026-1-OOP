@@ -17,7 +17,7 @@ public class NetworkSessionManager : MonoBehaviour, INetworkRunnerCallbacks
     [SerializeField] private int maxPlayers = 2;
 
     [Header("Scene Setting")]
-    [Tooltip("방 생성/참가 성공 후 이동할 대기방 씬 Build Index")]
+    [Tooltip("Waiting room scene Build Index after creating or joining a session")]
     [SerializeField] private int waitingRoomSceneBuildIndex = 1;
 
     [Header("Option")]
@@ -99,7 +99,7 @@ public class NetworkSessionManager : MonoBehaviour, INetworkRunnerCallbacks
             return;
 
         SetBusy(true);
-        SetStatus("Photon 로비 접속 중...");
+        SetStatus("Connecting to Photon lobby...");
 
         SetupRunner();
 
@@ -107,11 +107,11 @@ public class NetworkSessionManager : MonoBehaviour, INetworkRunnerCallbacks
 
         if (result.Ok)
         {
-            SetStatus("Photon 로비 접속 성공. 방 목록을 기다리는 중...");
+            SetStatus("Connected to Photon lobby. Waiting for the session list...");
         }
         else
         {
-            SetStatus("Photon 로비 접속 실패: " + result.ShutdownReason);
+            SetStatus("Failed to connect to Photon lobby: " + result.ShutdownReason);
         }
 
         SetBusy(false);
@@ -127,6 +127,31 @@ public class NetworkSessionManager : MonoBehaviour, INetworkRunnerCallbacks
         await StartSessionAsync(GameMode.Client, sessionName);
     }
 
+    public void CreateSessionWithRandomCode()
+    {
+        string roomCode = GenerateRoomCode();
+
+        SetStatus("Room Code: " + roomCode);
+
+        CreateSession(roomCode);
+    }
+
+    private string GenerateRoomCode()
+    {
+        const string chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+        int length = 6;
+
+        System.Text.StringBuilder code = new System.Text.StringBuilder();
+
+        for (int i = 0; i < length; i++)
+        {
+            int index = UnityEngine.Random.Range(0, chars.Length);
+            code.Append(chars[index]);
+        }
+
+        return code.ToString();
+    }
+
     private async Task StartSessionAsync(GameMode gameMode, string sessionName)
     {
         if (isBusy)
@@ -136,7 +161,7 @@ public class NetworkSessionManager : MonoBehaviour, INetworkRunnerCallbacks
 
         if (string.IsNullOrWhiteSpace(sessionName))
         {
-            SetStatus("방 이름이 비어 있음");
+            SetStatus("Room code is empty");
             return;
         }
 
@@ -147,11 +172,11 @@ public class NetworkSessionManager : MonoBehaviour, INetworkRunnerCallbacks
 
         if (gameMode == GameMode.Host)
         {
-            SetStatus($"방 생성 중: {sessionName}");
+            SetStatus($"Creating room: {sessionName}");
         }
         else
         {
-            SetStatus($"방 참가 중: {sessionName}");
+            SetStatus($"Joining room: {sessionName}");
         }
 
         StartGameArgs args = new StartGameArgs
@@ -186,18 +211,18 @@ public class NetworkSessionManager : MonoBehaviour, INetworkRunnerCallbacks
         {
             if (gameMode == GameMode.Host)
             {
-                SetStatus($"방 생성 성공: {sessionName}");
+                SetStatus($"Room created successfully: {sessionName}");
             }
             else
             {
-                SetStatus($"방 참가 성공: {sessionName}");
+                SetStatus($"Joined room successfully: {sessionName}");
             }
 
             OnSessionStartedEvent?.Invoke();
         }
         else
         {
-            SetStatus("방 생성/참가 실패: " + result.ShutdownReason);
+            SetStatus("Failed to create or join room: " + result.ShutdownReason);
 
             // 실패한 NetworkRunner는 재사용하면 꼬일 수 있음.
             // 일단 버튼은 다시 살리고, 개발 중에는 Play 재시작하는 게 안전함.
@@ -211,7 +236,7 @@ public class NetworkSessionManager : MonoBehaviour, INetworkRunnerCallbacks
     {
         if (runner == null)
         {
-            SetStatus("나갈 세션이 없음");
+            SetStatus("No session to leave");
             return;
         }
 
@@ -219,11 +244,11 @@ public class NetworkSessionManager : MonoBehaviour, INetworkRunnerCallbacks
             return;
 
         SetBusy(true);
-        SetStatus("세션 나가는 중...");
+        SetStatus("Leaving session...");
 
         await runner.Shutdown();
 
-        SetStatus("세션 종료 완료");
+        SetStatus("Session closed");
         SetBusy(false);
 
         OnSessionShutdownEvent?.Invoke();
@@ -234,7 +259,7 @@ public class NetworkSessionManager : MonoBehaviour, INetworkRunnerCallbacks
         if (string.IsNullOrWhiteSpace(sessionName))
             return "";
 
-        return sessionName.Trim();
+        return sessionName.Trim().ToUpper();
     }
 
     private NetworkSceneInfo CreateSceneInfo(int sceneBuildIndex)
@@ -302,31 +327,31 @@ public class NetworkSessionManager : MonoBehaviour, INetworkRunnerCallbacks
         cachedSessions.Clear();
         cachedSessions.AddRange(sessionList);
 
-        SetStatus($"방 목록 업데이트됨: {cachedSessions.Count}개");
+        SetStatus($"Session list updated: {cachedSessions.Count}");
 
         OnSessionListChanged?.Invoke(cachedSessions);
     }
 
     public void OnConnectedToServer(NetworkRunner runner)
     {
-        SetStatus("서버 연결 성공");
+        SetStatus("Connected to server");
     }
 
     public void OnConnectFailed(NetworkRunner runner, NetAddress remoteAddress, NetConnectFailedReason reason)
     {
-        SetStatus("서버 연결 실패: " + reason);
+        SetStatus("Failed to connect to server: " + reason);
     }
 
     public void OnDisconnectedFromServer(NetworkRunner runner, NetDisconnectReason reason)
     {
-        SetStatus("서버 연결 끊김: " + reason);
+        SetStatus("Disconnected from server: " + reason);
     }
 
     public void OnPlayerJoined(NetworkRunner runner, PlayerRef player)
     {
         int currentCount = GetCurrentPlayerCount();
 
-        SetStatus($"플레이어 입장: {player} / 현재 인원: {currentCount}/{maxPlayers}");
+        SetStatus($"Player joined: {player} / Current players: {currentCount}/{maxPlayers}");
 
         OnPlayerJoinedEvent?.Invoke(player);
     }
@@ -335,14 +360,14 @@ public class NetworkSessionManager : MonoBehaviour, INetworkRunnerCallbacks
     {
         int currentCount = GetCurrentPlayerCount();
 
-        SetStatus($"플레이어 퇴장: {player} / 현재 인원: {currentCount}/{maxPlayers}");
+        SetStatus($"Player left: {player} / Current players: {currentCount}/{maxPlayers}");
 
         OnPlayerLeftEvent?.Invoke(player);
     }
 
     public void OnShutdown(NetworkRunner runner, ShutdownReason shutdownReason)
     {
-        SetStatus("Runner 종료: " + shutdownReason);
+        SetStatus("Runner shutdown: " + shutdownReason);
 
         this.runner.ProvideInput = false;
 
@@ -353,7 +378,7 @@ public class NetworkSessionManager : MonoBehaviour, INetworkRunnerCallbacks
     {
         request.Accept();
     }
-    
+
     // INetworkRunnerCallbacks을 상속하고 있어서 필요한 함수들
     public void OnInput(NetworkRunner runner, NetworkInput input)
     {
@@ -395,11 +420,11 @@ public class NetworkSessionManager : MonoBehaviour, INetworkRunnerCallbacks
 
     public void OnSceneLoadStart(NetworkRunner runner)
     {
-        SetStatus("씬 로딩 시작");
+        SetStatus("Scene loading started");
     }
 
     public void OnSceneLoadDone(NetworkRunner runner)
     {
-        SetStatus("씬 로딩 완료");
+        SetStatus("Scene loading completed");
     }
 }

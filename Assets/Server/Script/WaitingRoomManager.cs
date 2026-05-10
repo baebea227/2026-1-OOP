@@ -11,7 +11,7 @@ using UnityEngine.UI;
 /// 
 /// 담당 범위:
 /// 1. 대기방에 들어온 플레이어 상태 생성
-/// 2. 현재 방 이름 / 인원 표시
+/// 2. 현재 방 코드 / 인원 표시
 /// 3. Ready 버튼 처리
 /// 4. 두 명 모두 Ready인지 확인
 /// 5. Host만 게임 시작 가능하게 처리
@@ -108,7 +108,7 @@ public class WaitingRoomManager : MonoBehaviour, INetworkRunnerCallbacks
         // 처음 대기방에 들어왔을 때 UI 갱신
         UpdateAllUI();
 
-        SetStatus("대기방 입장 완료");
+        SetStatus("Entered waiting room");
     }
 
     private void Update()
@@ -125,10 +125,10 @@ public class WaitingRoomManager : MonoBehaviour, INetworkRunnerCallbacks
     private void FindReferences()
     {
         if (networkSessionManager == null)
-            networkSessionManager = FindObjectOfType<NetworkSessionManager>();
+            networkSessionManager = FindAnyObjectByType<NetworkSessionManager>();
 
         if (sceneFlowManager == null)
-            sceneFlowManager = FindObjectOfType<SceneFlowManager>();
+            sceneFlowManager = FindAnyObjectByType<SceneFlowManager>();
 
         if (runner == null)
         {
@@ -136,7 +136,7 @@ public class WaitingRoomManager : MonoBehaviour, INetworkRunnerCallbacks
                 runner = networkSessionManager.Runner;
 
             if (runner == null)
-                runner = FindObjectOfType<NetworkRunner>();
+                runner = FindAnyObjectByType<NetworkRunner>();
         }
     }
 
@@ -150,7 +150,7 @@ public class WaitingRoomManager : MonoBehaviour, INetworkRunnerCallbacks
     {
         if (runner == null)
         {
-            SetStatus("NetworkRunner를 찾을 수 없음");
+            SetStatus("NetworkRunner not found");
             return;
         }
 
@@ -179,7 +179,7 @@ public class WaitingRoomManager : MonoBehaviour, INetworkRunnerCallbacks
 
         if (roomPlayerStatePrefab == null)
         {
-            SetStatus("RoomPlayerStatePrefab이 연결되지 않음");
+            SetStatus("RoomPlayerStatePrefab is not assigned");
             return;
         }
 
@@ -197,7 +197,7 @@ public class WaitingRoomManager : MonoBehaviour, INetworkRunnerCallbacks
 
         if (state == null)
         {
-            SetStatus("RoomPlayerState 컴포넌트가 프리팹에 없음");
+            SetStatus("RoomPlayerState component is missing on the prefab");
             return;
         }
 
@@ -207,7 +207,7 @@ public class WaitingRoomManager : MonoBehaviour, INetworkRunnerCallbacks
         // PlayerRef, Ready 초기값, Host 여부 설정
         state.Initialize(player, isHostPlayer);
 
-        SetStatus($"플레이어 상태 생성: {player}");
+        SetStatus($"Player state created: {player}");
     }
 
     /// <summary>
@@ -220,7 +220,7 @@ public class WaitingRoomManager : MonoBehaviour, INetworkRunnerCallbacks
 
         if (myPlayerState == null)
         {
-            SetStatus("내 RoomPlayerState를 찾을 수 없음");
+            SetStatus("My RoomPlayerState not found");
             return;
         }
 
@@ -245,24 +245,24 @@ public class WaitingRoomManager : MonoBehaviour, INetworkRunnerCallbacks
         // 씬 전환은 Host/SceneAuthority만 가능
         if (!runner.IsSceneAuthority)
         {
-            SetStatus("Host만 게임을 시작할 수 있음");
+            SetStatus("Only the host can start the game");
             return;
         }
 
         if (!CanStartGame())
         {
-            SetStatus("아직 게임 시작 조건이 아님");
+            SetStatus("Cannot start the game yet");
             return;
         }
 
-        SetStatus("게임 시작");
+        SetStatus("Starting game");
 
         // 여기까지만 네 담당 범위
         // 실제 GameScene 입장 후 캐릭터 스폰, 조작, 게임 규칙은 다른 담당자가 처리
         if (sceneFlowManager != null)
             sceneFlowManager.LoadGameSceneNetwork();
         else
-            SetStatus("SceneFlowManager를 찾을 수 없음");
+            SetStatus("SceneFlowManager not found");
     }
 
     /// <summary>
@@ -271,7 +271,7 @@ public class WaitingRoomManager : MonoBehaviour, INetworkRunnerCallbacks
     /// </summary>
     private void OnClickLeave()
     {
-        SetStatus("방 나가기");
+        SetStatus("Leaving room");
 
         if (networkSessionManager != null)
             networkSessionManager.LeaveSession();
@@ -289,7 +289,9 @@ public class WaitingRoomManager : MonoBehaviour, INetworkRunnerCallbacks
         if (runner == null)
             return;
 
-        RoomPlayerState[] states = FindObjectsOfType<RoomPlayerState>();
+        RoomPlayerState[] states = FindObjectsByType<RoomPlayerState>(
+            FindObjectsSortMode.None
+        );
 
         foreach (RoomPlayerState state in states)
         {
@@ -312,7 +314,9 @@ public class WaitingRoomManager : MonoBehaviour, INetworkRunnerCallbacks
     /// </summary>
     private RoomPlayerState FindRoomPlayerState(PlayerRef player)
     {
-        RoomPlayerState[] states = FindObjectsOfType<RoomPlayerState>();
+        RoomPlayerState[] states = FindObjectsByType<RoomPlayerState>(
+            FindObjectsSortMode.None
+        );
 
         foreach (RoomPlayerState state in states)
         {
@@ -329,7 +333,10 @@ public class WaitingRoomManager : MonoBehaviour, INetworkRunnerCallbacks
     /// </summary>
     private List<RoomPlayerState> GetRoomPlayerStates()
     {
-        RoomPlayerState[] states = FindObjectsOfType<RoomPlayerState>();
+        RoomPlayerState[] states = FindObjectsByType<RoomPlayerState>(
+            FindObjectsSortMode.None
+        );
+
         List<RoomPlayerState> result = new List<RoomPlayerState>();
 
         foreach (RoomPlayerState state in states)
@@ -381,7 +388,7 @@ public class WaitingRoomManager : MonoBehaviour, INetworkRunnerCallbacks
     }
 
     /// <summary>
-    /// 방 이름과 현재 인원 UI 갱신
+    /// 방 코드와 현재 인원 UI 갱신
     /// </summary>
     private void UpdateRoomInfoUI()
     {
@@ -391,9 +398,9 @@ public class WaitingRoomManager : MonoBehaviour, INetworkRunnerCallbacks
         if (roomNameText != null)
         {
             if (runner.SessionInfo != null)
-                roomNameText.text = "Room: " + runner.SessionInfo.Name;
+                roomNameText.text = "Room Code: " + runner.SessionInfo.Name;
             else
-                roomNameText.text = "Room: Unknown";
+                roomNameText.text = "Room Code: Unknown";
         }
 
         if (playerCountText != null)
@@ -511,7 +518,7 @@ public class WaitingRoomManager : MonoBehaviour, INetworkRunnerCallbacks
     /// </summary>
     public void OnPlayerJoined(NetworkRunner runner, PlayerRef player)
     {
-        SetStatus($"플레이어 입장: {player}");
+        SetStatus($"Player joined: {player}");
 
         if (runner.IsServer)
             SpawnRoomPlayerStateIfNeeded(player);
@@ -525,7 +532,7 @@ public class WaitingRoomManager : MonoBehaviour, INetworkRunnerCallbacks
     /// </summary>
     public void OnPlayerLeft(NetworkRunner runner, PlayerRef player)
     {
-        SetStatus($"플레이어 퇴장: {player}");
+        SetStatus($"Player left: {player}");
         UpdateAllUI();
     }
 
@@ -552,14 +559,14 @@ public class WaitingRoomManager : MonoBehaviour, INetworkRunnerCallbacks
     /// </summary>
     public void OnShutdown(NetworkRunner runner, ShutdownReason shutdownReason)
     {
-        SetStatus("세션 종료: " + shutdownReason);
+        SetStatus("Session ended: " + shutdownReason);
     }
 
     public void OnConnectedToServer(NetworkRunner runner) { }
 
     public void OnDisconnectedFromServer(NetworkRunner runner, NetDisconnectReason reason)
     {
-        SetStatus("서버 연결 끊김: " + reason);
+        SetStatus("Disconnected from server: " + reason);
     }
 
     public void OnConnectRequest(NetworkRunner runner, NetworkRunnerCallbackArgs.ConnectRequest request, byte[] token)
@@ -569,7 +576,7 @@ public class WaitingRoomManager : MonoBehaviour, INetworkRunnerCallbacks
 
     public void OnConnectFailed(NetworkRunner runner, NetAddress remoteAddress, NetConnectFailedReason reason)
     {
-        SetStatus("서버 연결 실패: " + reason);
+        SetStatus("Failed to connect to server: " + reason);
     }
 
     public void OnUserSimulationMessage(NetworkRunner runner, SimulationMessagePtr message) { }

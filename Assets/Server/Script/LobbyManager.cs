@@ -1,5 +1,4 @@
-using System.Collections.Generic;
-using Fusion;
+using System.Collections;
 using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
@@ -10,23 +9,21 @@ public class LobbyManager : MonoBehaviour
     [SerializeField] private NetworkSessionManager networkSessionManager;
 
     [Header("Lobby UI")]
-    [SerializeField] private TMP_InputField roomNameInput;
+    [SerializeField] private TMP_InputField roomCodeInput;
     [SerializeField] private Button createRoomButton;
     [SerializeField] private Button joinRoomButton;
-    [SerializeField] private Button refreshButton;
     [SerializeField] private TMP_Text statusText;
 
-    [Header("Room List UI")]
-    [SerializeField] private Transform roomListParent;
-    [SerializeField] private Button roomButtonPrefab;
+    [Header("Status Option")]
+    [SerializeField] private float statusHideDelay = 3f;
 
-    private readonly List<Button> roomButtons = new List<Button>();
+    private Coroutine statusCoroutine;
 
     private void Awake()
     {
         if (networkSessionManager == null)
         {
-            networkSessionManager = FindObjectOfType<NetworkSessionManager>();
+            networkSessionManager = FindAnyObjectByType<NetworkSessionManager>();
         }
     }
 
@@ -38,12 +35,8 @@ public class LobbyManager : MonoBehaviour
         if (joinRoomButton != null)
             joinRoomButton.onClick.AddListener(OnClickJoinRoom);
 
-        if (refreshButton != null)
-            refreshButton.onClick.AddListener(OnClickRefresh);
-
         if (networkSessionManager != null)
         {
-            networkSessionManager.OnSessionListChanged += UpdateRoomList;
             networkSessionManager.OnStatusChanged += SetStatus;
             networkSessionManager.OnBusyStateChanged += SetButtonsInteractable;
         }
@@ -57,12 +50,8 @@ public class LobbyManager : MonoBehaviour
         if (joinRoomButton != null)
             joinRoomButton.onClick.RemoveListener(OnClickJoinRoom);
 
-        if (refreshButton != null)
-            refreshButton.onClick.RemoveListener(OnClickRefresh);
-
         if (networkSessionManager != null)
         {
-            networkSessionManager.OnSessionListChanged -= UpdateRoomList;
             networkSessionManager.OnStatusChanged -= SetStatus;
             networkSessionManager.OnBusyStateChanged -= SetButtonsInteractable;
         }
@@ -70,17 +59,17 @@ public class LobbyManager : MonoBehaviour
 
     private void Start()
     {
+        if (statusText != null)
+            statusText.gameObject.SetActive(false);
+
         if (networkSessionManager == null)
         {
-            SetStatus("NetworkSessionManager를 찾을 수 없음");
+            SetStatus("NetworkSessionManager not found");
             SetButtonsInteractable(false);
             return;
         }
 
-        SetStatus("로비 준비 완료");
-
-        // 로비 씬에 들어오면 자동으로 Photon 로비 접속
-        networkSessionManager.JoinLobby();
+        SetStatus("Lobby ready");
     }
 
     private void OnClickCreateRoom()
@@ -88,15 +77,7 @@ public class LobbyManager : MonoBehaviour
         if (networkSessionManager == null)
             return;
 
-        string roomName = GetRoomName();
-
-        if (string.IsNullOrWhiteSpace(roomName))
-        {
-            SetStatus("방 이름을 입력해야 함");
-            return;
-        }
-
-        networkSessionManager.CreateSession(roomName);
+        networkSessionManager.CreateSessionWithRandomCode();
     }
 
     private void OnClickJoinRoom()
@@ -104,121 +85,50 @@ public class LobbyManager : MonoBehaviour
         if (networkSessionManager == null)
             return;
 
-        string roomName = GetRoomName();
+        string roomCode = GetRoomCode();
 
-        if (string.IsNullOrWhiteSpace(roomName))
+        if (string.IsNullOrWhiteSpace(roomCode))
         {
-            SetStatus("참가할 방 이름을 입력해야 함");
+            SetStatus("Please enter a room code to join");
             return;
         }
 
-        networkSessionManager.JoinSession(roomName);
+        networkSessionManager.JoinSession(roomCode);
     }
 
-    private void OnClickRefresh()
+    private string GetRoomCode()
     {
-        if (networkSessionManager == null)
-            return;
-
-        networkSessionManager.JoinLobby();
-    }
-
-    private string GetRoomName()
-    {
-        if (roomNameInput == null)
+        if (roomCodeInput == null)
             return "";
 
-        return roomNameInput.text.Trim();
-    }
-
-    private void UpdateRoomList(List<SessionInfo> sessionList)
-    {
-        ClearRoomList();
-
-        if (sessionList == null || sessionList.Count == 0)
-        {
-            SetStatus("현재 생성된 방이 없음");
-            return;
-        }
-
-        foreach (SessionInfo session in sessionList)
-        {
-            if (!IsValidRoom(session))
-                continue;
-
-            CreateRoomButton(session);
-        }
-
-        SetStatus($"방 목록 업데이트 완료: {sessionList.Count}개");
-    }
-
-    private bool IsValidRoom(SessionInfo session)
-    {
-        if (!session.IsValid)
-            return false;
-
-        if (!session.IsVisible)
-            return false;
-
-        return true;
-    }
-
-    private void CreateRoomButton(SessionInfo session)
-    {
-        if (roomListParent == null || roomButtonPrefab == null)
-            return;
-
-        Button button = Instantiate(roomButtonPrefab, roomListParent);
-        roomButtons.Add(button);
-
-        TMP_Text buttonText = button.GetComponentInChildren<TMP_Text>();
-
-        if (buttonText != null)
-        {
-            buttonText.text =
-                $"{session.Name}  ({session.PlayerCount}/{session.MaxPlayers})";
-        }
-
-        bool canJoin = session.IsOpen && session.PlayerCount < session.MaxPlayers;
-        button.interactable = canJoin;
-
-        string selectedRoomName = session.Name;
-
-        button.onClick.AddListener(() =>
-        {
-            if (roomNameInput != null)
-                roomNameInput.text = selectedRoomName;
-
-            if (networkSessionManager != null)
-                networkSessionManager.JoinSession(selectedRoomName);
-        });
-    }
-
-    private void ClearRoomList()
-    {
-        foreach (Button button in roomButtons)
-        {
-            if (button != null)
-                Destroy(button.gameObject);
-        }
-
-        roomButtons.Clear();
-
-        if (roomListParent == null)
-            return;
-
-        foreach (Transform child in roomListParent)
-        {
-            Destroy(child.gameObject);
-        }
+        return roomCodeInput.text.Trim().ToUpper();
     }
 
     private void SetStatus(string message)
     {
         Debug.Log("[LobbyManager] " + message);
 
-        if (statusText != null)
-            statusText.text = message;
+        if (statusText == null)
+            return;
+
+        if (string.IsNullOrWhiteSpace(message))
+        {
+            statusText.text = "";
+            statusText.gameObject.SetActive(false);
+            return;
+        }
+
+        statusText.text = message;
+        statusText.gameObject.SetActive(true);
+
+        if (statusCoroutine != null)
+            StopCoroutine(statusCoroutine);
+
+        // Keep the room code visible so the player can share it with a friend.
+        if (message.Contains("Room Code"))
+            return;
+
+        statusCoroutine = StartCoroutine(HideStatusAfterDelay());
     }
 
     private void SetButtonsInteractable(bool interactable)
@@ -228,8 +138,18 @@ public class LobbyManager : MonoBehaviour
 
         if (joinRoomButton != null)
             joinRoomButton.interactable = interactable;
+    }
 
-        if (refreshButton != null)
-            refreshButton.interactable = interactable;
+    private IEnumerator HideStatusAfterDelay()
+    {
+        yield return new WaitForSeconds(statusHideDelay);
+
+        if (statusText != null)
+        {
+            statusText.text = "";
+            statusText.gameObject.SetActive(false);
+        }
+
+        statusCoroutine = null;
     }
 }
