@@ -5,6 +5,7 @@ public class ActivatableStructure : NetworkBehaviour, IActivatable
 {
     public bool IsActive { get; set;}
     [SerializeField] bool firstState;
+    [SerializeField] bool isDisposable;
     [SerializeField] int triggerCnt;
     int curTriggerCnt;
 
@@ -26,6 +27,14 @@ public class ActivatableStructure : NetworkBehaviour, IActivatable
             {
                 Deactivate();
             }
+            if (isDisposable)
+            {
+                triggerCnt = 100;
+            }
+        }
+        else if(triggerCnt == 100)
+        {
+            return;
         }
         else
         {
@@ -33,6 +42,10 @@ public class ActivatableStructure : NetworkBehaviour, IActivatable
             if(curTriggerCnt == triggerCnt)
             {
                 Activate();
+                if (isDisposable)
+                {
+                    triggerCnt = 100;
+                }
             }
             else
             {

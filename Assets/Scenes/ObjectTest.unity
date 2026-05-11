@@ -272,6 +272,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PlatformStructure
   firstState: 0
+  isDisposable: 0
   triggerCnt: 2
   moveTime: 3
   posA: {fileID: 380219946}
@@ -478,6 +479,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::ActivatableStructure
   firstState: 1
+  isDisposable: 0
   triggerCnt: 0
 --- !u!114 &221505225
 MonoBehaviour:
@@ -784,6 +786,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::ActivatableStructure
   firstState: 1
+  isDisposable: 0
   triggerCnt: 0
 --- !u!65 &261786759
 BoxCollider:
@@ -912,6 +915,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::ActivatableStructure
   firstState: 0
+  isDisposable: 0
   triggerCnt: 0
 --- !u!114 &351183398
 MonoBehaviour:
@@ -1661,7 +1665,7 @@ Transform:
   m_GameObject: {fileID: 1464142722}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 1.68, y: 2.62, z: -4.97}
+  m_LocalPosition: {x: 10.91, y: 3.4, z: -4.97}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -1801,6 +1805,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PlatformStructure
   firstState: 0
+  isDisposable: 0
   triggerCnt: 0
   moveTime: 3
   posA: {fileID: 30847714}
@@ -1932,6 +1937,10 @@ PrefabInstance:
     - target: {fileID: 4625556812424041081, guid: 68a26c56784b87849878ad7504deb233, type: 3}
       propertyPath: triggerCnt
       value: 2
+      objectReference: {fileID: 0}
+    - target: {fileID: 4625556812424041081, guid: 68a26c56784b87849878ad7504deb233, type: 3}
+      propertyPath: isDisposable
+      value: 1
       objectReference: {fileID: 0}
     - target: {fileID: 7587425722861560967, guid: 68a26c56784b87849878ad7504deb233, type: 3}
       propertyPath: m_Name
@@ -2528,6 +2537,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::ActivatableStructure
   firstState: 0
+  isDisposable: 0
   triggerCnt: 0
 --- !u!114 &1997605569
 MonoBehaviour:

@@ -6,6 +6,7 @@ public class PlatformStructure : NetworkBehaviour, IActivatable
 {
     public bool IsActive { get; set;}
     [SerializeField] bool firstState;
+    [SerializeField] bool isDisposable;
     [SerializeField] int triggerCnt;
     int curTriggerCnt;
 
@@ -32,6 +33,14 @@ public class PlatformStructure : NetworkBehaviour, IActivatable
         if(curTriggerCnt >= triggerCnt)
         {
             Activate();
+            if (isDisposable)
+            {
+                triggerCnt = 100;
+            }
+        }
+        else if(triggerCnt == 100)
+        {
+            return;
         }
         else
         {
@@ -65,7 +74,7 @@ public class PlatformStructure : NetworkBehaviour, IActivatable
     void Update()
     {
         if (IsActive)
-        {Debug.Log("Moooooviiiiing...");
+        {
             Move();
         }
     }
