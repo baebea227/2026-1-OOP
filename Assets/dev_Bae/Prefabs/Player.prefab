@@ -24,8 +24,8 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1919015785910120827}
   serializedVersion: 2
-  m_LocalRotation: {x: -0, y: 0, z: -0, w: 1}
-  m_LocalPosition: {x: 0, y: 1.6, z: 0.5}
+  m_LocalRotation: {x: -0.21035042, y: 0.1581611, z: -0.03450557, w: -0.9641303}
+  m_LocalPosition: {x: 0.83791363, y: 2.2752974, z: -1.3558102}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children:
@@ -499,6 +499,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::PlayerGrabHandler
   grabRange: 3
   throwSpeed: 10
+  serverValidationPadding: 0.5
   holdPoint: {fileID: 2908511004687505858}
   cameraTransform: {fileID: 6876907299997132427}
   _HeldGrabbable: {fileID: 0}
