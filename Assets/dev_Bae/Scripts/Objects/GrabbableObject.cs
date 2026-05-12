@@ -8,26 +8,58 @@ public class GrabbableObject : InteractableObject, IPickupable, IPushable
 
     [Networked] private NetworkObject HolderObject { get; set; }
 
-    // State Authority에서만 유효한 로컬 상태
     private float lastPushTime = -1f;
     private const float pushCooldown = 0.1f;
 
     public void OnPickup(PlayerGrabHandler grabber)
     {
-        if (Object.HasStateAuthority) ApplyPickup(grabber.Object);
-        else RPC_Pickup(grabber.Object);
+        if (grabber == null) return;
+        TryPickup(grabber.Object);
     }
 
     public void OnThrow(PlayerGrabHandler thrower, Vector3 velocity)
     {
-        if (Object.HasStateAuthority) ApplyThrow(thrower.Object, velocity);
-        else RPC_Throw(thrower.Object, velocity);
+        if (thrower == null) return;
+        TryThrow(thrower.Object, velocity);
     }
 
     public void OnDrop(PlayerGrabHandler dropper)
     {
-        if (Object.HasStateAuthority) ApplyDrop(dropper.Object);
-        else RPC_Drop(dropper.Object);
+        if (dropper == null) return;
+        TryDrop(dropper.Object);
+    }
+
+    public void TryPickup(NetworkObject holder)
+    {
+        if (Object.HasStateAuthority)
+        {
+            ApplyPickup(holder);
+            return;
+        }
+
+        RPC_Pickup(holder);
+    }
+
+    public void TryThrow(NetworkObject thrower, Vector3 velocity)
+    {
+        if (Object.HasStateAuthority)
+        {
+            ApplyThrow(thrower, velocity);
+            return;
+        }
+
+        RPC_Throw(thrower, velocity);
+    }
+
+    public void TryDrop(NetworkObject dropper)
+    {
+        if (Object.HasStateAuthority)
+        {
+            ApplyDrop(dropper);
+            return;
+        }
+
+        RPC_Drop(dropper);
     }
 
     public void OnPush(Vector3 force, PlayerRef pusher)
@@ -37,21 +69,31 @@ public class GrabbableObject : InteractableObject, IPickupable, IPushable
         else RPC_Push(force);
     }
 
-    // 이미 잡힌 상태면 무시 — 동시 잡기 race에서 늦게 도착한 RPC 차단
     private void ApplyPickup(NetworkObject holder)
     {
-        if (HolderObject != null) return;
+        if (holder == null || HolderObject != null)
+            return;
+
+        var grabber = holder.GetComponent<PlayerGrabHandler>();
+        if (grabber == null || grabber.HeldGrabbable != null)
+            return;
+
         HolderObject = holder;
-        holder.GetComponent<PlayerGrabHandler>().HeldGrabbable = Object;
+        grabber.HeldGrabbable = Object;
+        rb.isKinematic = true;
         rb.linearVelocity = Vector3.zero;
         rb.angularVelocity = Vector3.zero;
     }
 
-    // 본인이 현재 holder일 때만 해제 — 남의 손에 있는 물체 강제 해제 차단
     private void ApplyThrow(NetworkObject thrower, Vector3 velocity)
     {
-        if (HolderObject != thrower) return;
-        thrower.GetComponent<PlayerGrabHandler>().HeldGrabbable = null;
+        if (thrower == null || HolderObject != thrower)
+            return;
+
+        var grabber = thrower.GetComponent<PlayerGrabHandler>();
+        if (grabber != null && grabber.HeldGrabbable == Object)
+            grabber.HeldGrabbable = null;
+
         HolderObject = null;
         rb.isKinematic = false;
         rb.linearVelocity = velocity;
@@ -60,13 +102,19 @@ public class GrabbableObject : InteractableObject, IPickupable, IPushable
 
     private void ApplyDrop(NetworkObject dropper)
     {
-        if (HolderObject != dropper) return;
-        dropper.GetComponent<PlayerGrabHandler>().HeldGrabbable = null;
+        if (dropper == null || HolderObject != dropper)
+            return;
+
+        var grabber = dropper.GetComponent<PlayerGrabHandler>();
+        if (grabber != null && grabber.HeldGrabbable == Object)
+            grabber.HeldGrabbable = null;
+
         HolderObject = null;
+        rb.isKinematic = false;
+        rb.linearVelocity = Vector3.zero;
+        rb.angularVelocity = Vector3.zero;
     }
 
-    // StateAuthority측 재검증 — 호출 시점과 RPC 도착 시점 사이 잡힘 상태 변화 대응.
-    // 접촉 매 틱 누적 임펄스로 큐브가 튀어나가던 문제 차단을 위해 쿨다운 적용.
     private void ApplyPush(Vector3 force)
     {
         if (HolderObject != null) return;
@@ -92,13 +140,21 @@ public class GrabbableObject : InteractableObject, IPickupable, IPushable
 
     public override void FixedUpdateNetwork()
     {
+        if (!Object.HasStateAuthority)
+            return;
+
         bool isHeld = HolderObject != null;
         rb.isKinematic = isHeld;
 
         if (!isHeld) return;
 
         var holder = HolderObject.GetComponent<PlayerGrabHandler>();
-        if (holder != null)
-            rb.MovePosition(holder.HoldPoint.position);
+        if (holder == null || holder.HoldPoint == null)
+        {
+            HolderObject = null;
+            return;
+        }
+
+        rb.MovePosition(holder.HoldPoint.position);
     }
 }

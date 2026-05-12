@@ -6,6 +6,7 @@ public class PlayerGrabHandler : NetworkBehaviour
     [Header("Grab Settings")]
     public float grabRange = 3f;
     public float throwSpeed = 10f;
+    public float serverValidationPadding = 0.5f;
 
     [Header("References")]
     public Transform holdPoint;
@@ -13,12 +14,10 @@ public class PlayerGrabHandler : NetworkBehaviour
 
     public Transform HoldPoint => holdPoint;
 
-    // 호스트가 ApplyPickup/Drop/Throw에서 함께 갱신 — resim 시 스냅샷으로 정확히 복원되어 토글 뒤집힘 방지
     [Networked] public NetworkObject HeldGrabbable { get; set; }
 
     void Awake()
     {
-        // 인스펙터 미할당 시 자식 카메라로 폴백 — 누락된 참조로 잡기/던지기가 조용히 실패하는 것 방지
         if (cameraTransform == null)
         {
             var cam = GetComponentInChildren<Camera>(true);
@@ -33,10 +32,7 @@ public class PlayerGrabHandler : NetworkBehaviour
 
         if (input.isGrab)
         {
-            if (HeldGrabbable == null)
-                TryGrab();
-            else
-                HeldGrabbable.GetComponent<GrabbableObject>().OnDrop(this);
+            RequestToggleGrab(FindGrabCandidate());
         }
 
         if (input.isInteract)
@@ -44,26 +40,104 @@ public class PlayerGrabHandler : NetworkBehaviour
             TryInteract();
         }
 
-        if (input.isThrow && HeldGrabbable != null)
+        if (input.isThrow)
         {
-            if (cameraTransform == null) return;
-            Vector3 velocity = cameraTransform.forward * throwSpeed;
-            HeldGrabbable.GetComponent<GrabbableObject>().OnThrow(this, velocity);
+            RequestThrow(GetAimDirection());
         }
     }
 
-    private void TryGrab()
+    private NetworkObject FindGrabCandidate()
     {
-        if (cameraTransform == null) return;
+        if (cameraTransform == null) return null;
 
         Ray ray = new Ray(cameraTransform.position, cameraTransform.forward);
         if (!Runner.GetPhysicsScene().Raycast(ray.origin, ray.direction, out var hit, grabRange))
+            return null;
+
+        var grabbable = hit.collider.GetComponentInParent<GrabbableObject>();
+        return grabbable != null ? grabbable.Object : null;
+    }
+
+    private Vector3 GetAimDirection()
+    {
+        return cameraTransform != null ? cameraTransform.forward : transform.forward;
+    }
+
+    private void RequestToggleGrab(NetworkObject candidate)
+    {
+        if (Object.HasStateAuthority)
+        {
+            ApplyToggleGrab(candidate);
+            return;
+        }
+
+        RPC_RequestToggleGrab(candidate);
+    }
+
+    private void RequestThrow(Vector3 aimDirection)
+    {
+        if (Object.HasStateAuthority)
+        {
+            ApplyThrow(aimDirection);
+            return;
+        }
+
+        RPC_RequestThrow(aimDirection);
+    }
+
+    private void ApplyToggleGrab(NetworkObject candidate)
+    {
+        if (HeldGrabbable != null)
+        {
+            DropHeldObject();
+            return;
+        }
+
+        if (candidate == null)
             return;
 
-        var grabbable = hit.collider.GetComponent<GrabbableObject>();
-        if (grabbable == null) return;
+        var grabbable = candidate.GetComponent<GrabbableObject>();
+        if (grabbable == null || !CanReach(candidate.transform.position))
+            return;
 
-        grabbable.OnPickup(this);
+        grabbable.TryPickup(Object);
+    }
+
+    private void ApplyThrow(Vector3 aimDirection)
+    {
+        if (HeldGrabbable == null)
+            return;
+
+        var grabbable = HeldGrabbable.GetComponent<GrabbableObject>();
+        if (grabbable == null)
+        {
+            HeldGrabbable = null;
+            return;
+        }
+
+        if (aimDirection.sqrMagnitude <= 0.0001f)
+            aimDirection = transform.forward;
+
+        grabbable.TryThrow(Object, aimDirection.normalized * throwSpeed);
+    }
+
+    private void DropHeldObject()
+    {
+        var grabbable = HeldGrabbable != null ? HeldGrabbable.GetComponent<GrabbableObject>() : null;
+        if (grabbable == null)
+        {
+            HeldGrabbable = null;
+            return;
+        }
+
+        grabbable.TryDrop(Object);
+    }
+
+    private bool CanReach(Vector3 targetPosition)
+    {
+        float maxDistance = grabRange + serverValidationPadding;
+        Vector3 origin = cameraTransform != null ? cameraTransform.position : transform.position;
+        return Vector3.Distance(origin, targetPosition) <= maxDistance;
     }
 
     private void TryInteract()
@@ -78,5 +152,17 @@ public class PlayerGrabHandler : NetworkBehaviour
         if (lever == null) return;
 
         lever.Operate();
+    }
+
+    [Rpc(RpcSources.InputAuthority, RpcTargets.StateAuthority)]
+    private void RPC_RequestToggleGrab(NetworkObject candidate)
+    {
+        ApplyToggleGrab(candidate);
+    }
+
+    [Rpc(RpcSources.InputAuthority, RpcTargets.StateAuthority)]
+    private void RPC_RequestThrow(Vector3 aimDirection)
+    {
+        ApplyThrow(aimDirection);
     }
 }
