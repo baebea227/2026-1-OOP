@@ -1,6 +1,4 @@
 using System.Collections;
-using System.Runtime.InteropServices.WindowsRuntime;
-using Unity.VisualScripting;
 using UnityEngine;
 using Fusion;
 
@@ -19,8 +17,8 @@ public class Lever : OperatableObject
 
     public override void Operate()
     {
-        operateState = !operateState;
-        connectedObjController.OnActivate(operateState ? 1 : -1);
+        // operateState = !operateState;
+        // connectedObjController.OnActivate(operateState ? 1 : -1);
     }
 
     IEnumerator OperateCooldown()
@@ -39,12 +37,44 @@ public class Lever : OperatableObject
     void OnTriggerEnter(Collider other)
     {
         // 임시 조건
-        if (other.CompareTag("Player") && isOperatable)
-        {
-            Operate();
-            StartCoroutine(OperateCooldown());
-        }
+        // if (other.CompareTag("Player") && isOperatable)
+        // {
+        //     Operate();
+        //     StartCoroutine(OperateCooldown());
+        // }
     }
 
-    public void TryOperate(NetworkObject operatorObject) {}
+    public void TryOperate(NetworkObject operatorObject)
+    {
+        if (Object.HasStateAuthority)
+        {
+            ApplyOperate(operatorObject);
+            return;
+        }
+
+        RPC_Operate(operatorObject);
+    }
+
+    private void ApplyOperate(NetworkObject operatorObject)
+    {
+        if(operatorObject == null)
+        {
+            return;
+        }
+
+        if(!isOperatable)
+        {
+            return;
+        }
+
+        operateState = !operateState;
+        connectedObjController.OnActivate(operateState ? 1 : -1);
+        StartCoroutine(OperateCooldown());
+    }
+
+    [Rpc(RpcSources.InputAuthority, RpcTargets.StateAuthority)]
+    private void RPC_Operate(NetworkObject operatorObject)
+    {
+        ApplyOperate(operatorObject);
+    }
 }
