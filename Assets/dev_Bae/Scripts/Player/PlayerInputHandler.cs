@@ -14,15 +14,20 @@ public class PlayerInputHandler : NetworkBehaviour
     private InputAction interactAction;
     private InputAction throwAction;
 
-    public InputAction LookAction => lookAction;
+    public float CameraYaw => localYaw;
+    public float CameraPitch => localPitch;
 
     private bool localJumpPressed;
     private bool localGrabPressed;
     private bool localInteractPressed;
     private bool localThrowPressed;
     private float localYaw;
+    private float localPitch;
 
+    [Header("Look Settings")]
     public float lookSensitivity = 0.15f;
+    [Range(-80f, 0f)] public float minPitch = -35f;
+    [Range(0f, 80f)] public float maxPitch = 55f;
 
     private void Awake()
     {
@@ -40,6 +45,8 @@ public class PlayerInputHandler : NetworkBehaviour
     {
         if (HasInputAuthority)
         {
+            localYaw = transform.eulerAngles.y;
+            localPitch = 0f;
             playerInput.enabled = true;
 
             if (Runner != null && Object != null)
@@ -84,7 +91,10 @@ public class PlayerInputHandler : NetworkBehaviour
         if (throwAction.WasPressedThisFrame())
             localThrowPressed = true;
 
-        localYaw += lookAction.ReadValue<Vector2>().x * lookSensitivity;
+        Vector2 lookInput = lookAction.ReadValue<Vector2>();
+        localYaw += lookInput.x * lookSensitivity;
+        localPitch -= lookInput.y * lookSensitivity;
+        localPitch = Mathf.Clamp(localPitch, minPitch, maxPitch);
     }
 
     public void OnInput(NetworkRunner runner, NetworkInput input)
@@ -93,6 +103,7 @@ public class PlayerInputHandler : NetworkBehaviour
         {
             moveInput = moveAction.ReadValue<Vector2>(),
             yaw = localYaw,
+            pitch = localPitch,
             isSprinting = sprintAction.IsPressed(),
             isJumping = localJumpPressed,
             isGrab = localGrabPressed,

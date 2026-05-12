@@ -11,6 +11,7 @@ public class PlayerMovement : NetworkBehaviour
     public float walkSpeed   = 2f;
     public float runSpeed    = 5f;
     public float sprintSpeed = 8f;
+    public float turnSpeed   = 720f;
 
     [Header("Gravity & Jump")]
     public float gravity    = -9.81f;
@@ -44,13 +45,9 @@ public class PlayerMovement : NetworkBehaviour
     {
         if (!GetInput(out PlayerNetworkInput input)) return;
 
-        Yaw = input.yaw;
-        transform.rotation = Quaternion.Euler(0f, Yaw, 0f);
-
         bool sprinting = input.isSprinting && input.moveInput.y > 0;
         bool jumping   = input.isJumping && cc.Grounded;
 
-        MoveInput   = input.moveInput;
         IsSprinting = sprinting;
         IsJumping   = jumping;
 
@@ -61,12 +58,34 @@ public class PlayerMovement : NetworkBehaviour
         else if (input.moveInput.magnitude > 0.5f) cc.maxSpeed = runSpeed;
         else if (input.moveInput.magnitude > 0f)   cc.maxSpeed = walkSpeed;
 
-        Vector3 right   = transform.right;
-        Vector3 forward = transform.forward;
+        Quaternion cameraYaw = Quaternion.Euler(0f, input.yaw, 0f);
+        Vector3 right   = cameraYaw * Vector3.right;
+        Vector3 forward = cameraYaw * Vector3.forward;
         right.y   = 0f; right.Normalize();
         forward.y = 0f; forward.Normalize();
 
         Vector3 moveDir = right * input.moveInput.x + forward * input.moveInput.y;
+        if (moveDir.sqrMagnitude > 1f)
+            moveDir.Normalize();
+
+        if (moveDir.sqrMagnitude > 0.0001f)
+        {
+            Quaternion targetRotation = Quaternion.LookRotation(moveDir, Vector3.up);
+            transform.rotation = Quaternion.RotateTowards(
+                transform.rotation,
+                targetRotation,
+                turnSpeed * Runner.DeltaTime);
+
+            Vector3 localMoveDirection = transform.InverseTransformDirection(moveDir);
+            MoveInput = new Vector2(localMoveDirection.x, localMoveDirection.z);
+        }
+        else
+        {
+            MoveInput = Vector2.zero;
+        }
+
+        Yaw = transform.eulerAngles.y;
+
         cc.Move(moveDir); // NCC 내부에서 normalize + gravity + grounded 처리
 
         IsFalling = !cc.Grounded && cc.Velocity.y < 0f;

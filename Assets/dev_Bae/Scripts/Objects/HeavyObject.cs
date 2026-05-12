@@ -23,22 +23,27 @@ public class HeavyObject : InteractableObject, IPushable
 
     private static readonly RigidbodyConstraints MovementConstraints =
         RigidbodyConstraints.FreezePositionY | RigidbodyConstraints.FreezeRotation;
+    private static readonly RigidbodyConstraints LockedMovementConstraints =
+        MovementConstraints | RigidbodyConstraints.FreezePositionX | RigidbodyConstraints.FreezePositionZ;
 
     private readonly Dictionary<PlayerRef, PushSample> pushSamples = new();
     private const float pushWindow = 0.15f;
+    private const float authorizedMoveDuration = 0.25f;
     private float lastForcedTime = -1f;
+    private float authorizedMoveUntil = -1f;
+    private int authorizedDirection = -1;
     private const float forceCooldown = 0.1f;
 
     protected override void Awake()
     {
         base.Awake();
-        ApplyMovementConstraints();
+        ApplyLockedMovementConstraints();
     }
 
     public override void Spawned()
     {
         base.Spawned();
-        ApplyMovementConstraints();
+        ApplyLockedMovementConstraints();
     }
 
     public override void FixedUpdateNetwork()
@@ -82,6 +87,7 @@ public class HeavyObject : InteractableObject, IPushable
         if (TryGetCooperativePush(now, out int cooperativeDirection, out float cooperativeMagnitude))
         {
             Vector3 pushForce = GetWorldDirection(cooperativeDirection) * cooperativeMagnitude;
+            UnlockForAuthorizedMove(cooperativeDirection, now);
             rb.WakeUp();
             rb.AddForce(pushForce, ForceMode.Impulse);
             lastForcedTime = now;
@@ -177,30 +183,60 @@ public class HeavyObject : InteractableObject, IPushable
 
     private void ClampMotionToFaceAxis()
     {
-        ApplyMovementConstraints();
-
         if (rb.isKinematic)
             return;
+
+        if (!HasAuthorizedMovement())
+        {
+            StopMotion();
+            ApplyLockedMovementConstraints();
+            return;
+        }
+
+        ApplyMovementConstraints();
 
         Vector3 velocity = rb.linearVelocity;
         velocity.y = 0f;
 
         if (velocity.sqrMagnitude <= minPushForceSqr)
         {
-            rb.linearVelocity = Vector3.zero;
-            rb.angularVelocity = Vector3.zero;
+            StopMotion();
             return;
         }
 
-        if (!TrySnapForce(velocity, out int directionIndex, out _))
+        if (!TrySnapForce(velocity, out int directionIndex, out _) || directionIndex != authorizedDirection)
         {
-            rb.linearVelocity = Vector3.zero;
-            rb.angularVelocity = Vector3.zero;
+            StopMotion();
             return;
         }
 
-        Vector3 allowedDirection = GetWorldDirection(directionIndex);
-        rb.linearVelocity = allowedDirection * Vector3.Dot(velocity, allowedDirection);
+        Vector3 allowedDirection = GetWorldDirection(authorizedDirection);
+        float allowedSpeed = Vector3.Dot(velocity, allowedDirection);
+        if (allowedSpeed <= 0f)
+        {
+            StopMotion();
+            return;
+        }
+
+        rb.linearVelocity = allowedDirection * allowedSpeed;
+        rb.angularVelocity = Vector3.zero;
+    }
+
+    private void UnlockForAuthorizedMove(int directionIndex, float now)
+    {
+        authorizedDirection = directionIndex;
+        authorizedMoveUntil = now + authorizedMoveDuration;
+        ApplyMovementConstraints();
+    }
+
+    private bool HasAuthorizedMovement()
+    {
+        return authorizedDirection >= 0 && Runner.SimulationTime <= authorizedMoveUntil;
+    }
+
+    private void StopMotion()
+    {
+        rb.linearVelocity = Vector3.zero;
         rb.angularVelocity = Vector3.zero;
     }
 
@@ -208,5 +244,11 @@ public class HeavyObject : InteractableObject, IPushable
     {
         if (rb.constraints != MovementConstraints)
             rb.constraints = MovementConstraints;
+    }
+
+    private void ApplyLockedMovementConstraints()
+    {
+        if (rb.constraints != LockedMovementConstraints)
+            rb.constraints = LockedMovementConstraints;
     }
 }

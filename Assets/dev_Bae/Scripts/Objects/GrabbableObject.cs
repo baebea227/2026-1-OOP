@@ -10,6 +10,24 @@ public class GrabbableObject : InteractableObject, IPickupable, IPushable
 
     private float lastPushTime = -1f;
     private const float pushCooldown = 0.1f;
+    private Collider[] objectColliders;
+    private bool[] defaultColliderEnabled;
+    private bool defaultUseGravity;
+    private bool defaultDetectCollisions;
+    private bool physicsDisabledForHold;
+
+    protected override void Awake()
+    {
+        base.Awake();
+
+        objectColliders = GetComponentsInChildren<Collider>();
+        defaultColliderEnabled = new bool[objectColliders.Length];
+        for (int i = 0; i < objectColliders.Length; i++)
+            defaultColliderEnabled[i] = objectColliders[i] != null && objectColliders[i].enabled;
+
+        defaultUseGravity = rb.useGravity;
+        defaultDetectCollisions = rb.detectCollisions;
+    }
 
     public void OnPickup(PlayerGrabHandler grabber)
     {
@@ -88,7 +106,7 @@ public class GrabbableObject : InteractableObject, IPickupable, IPushable
         HolderObject = holder;
         grabber.HeldGrabbable = Object;
         ClearVelocityIfDynamic();
-        SetKinematic(true);
+        SetHeldPhysicsDisabled(true);
     }
 
     private void ApplyThrow(NetworkObject thrower, Vector3 velocity)
@@ -101,7 +119,7 @@ public class GrabbableObject : InteractableObject, IPickupable, IPushable
             grabber.HeldGrabbable = null;
 
         HolderObject = null;
-        SetKinematic(false);
+        SetHeldPhysicsDisabled(false);
         rb.WakeUp();
         rb.linearVelocity = velocity;
         rb.angularVelocity = Vector3.zero;
@@ -117,7 +135,7 @@ public class GrabbableObject : InteractableObject, IPickupable, IPushable
             grabber.HeldGrabbable = null;
 
         HolderObject = null;
-        SetKinematic(false);
+        SetHeldPhysicsDisabled(false);
         rb.WakeUp();
         rb.linearVelocity = Vector3.zero;
         rb.angularVelocity = Vector3.zero;
@@ -154,6 +172,58 @@ public class GrabbableObject : InteractableObject, IPickupable, IPushable
             rb.isKinematic = isKinematic;
     }
 
+    private void SetHeldPhysicsDisabled(bool disabled)
+    {
+        bool expectedDetectCollisions = disabled ? false : defaultDetectCollisions;
+        bool expectedUseGravity = disabled ? false : defaultUseGravity;
+        if (physicsDisabledForHold == disabled &&
+            rb.isKinematic == disabled &&
+            rb.detectCollisions == expectedDetectCollisions &&
+            rb.useGravity == expectedUseGravity)
+        {
+            return;
+        }
+
+        if (disabled)
+        {
+            ClearVelocityIfDynamic();
+            SetKinematic(true);
+            rb.useGravity = false;
+            rb.detectCollisions = false;
+            SetCollidersEnabled(false);
+        }
+        else
+        {
+            SetKinematic(false);
+            rb.useGravity = defaultUseGravity;
+            rb.detectCollisions = defaultDetectCollisions;
+            SetCollidersEnabled(true);
+        }
+
+        physicsDisabledForHold = disabled;
+    }
+
+    private void SetCollidersEnabled(bool enabled)
+    {
+        if (objectColliders == null)
+            return;
+
+        for (int i = 0; i < objectColliders.Length; i++)
+        {
+            Collider objectCollider = objectColliders[i];
+            if (objectCollider == null)
+                continue;
+
+            bool wasEnabledByDefault =
+                defaultColliderEnabled == null ||
+                i >= defaultColliderEnabled.Length ||
+                defaultColliderEnabled[i];
+            bool targetEnabled = enabled && wasEnabledByDefault;
+            if (objectCollider.enabled != targetEnabled)
+                objectCollider.enabled = targetEnabled;
+        }
+    }
+
     [Rpc(RpcSources.All, RpcTargets.StateAuthority)]
     private void RPC_Pickup(NetworkObject holder) => ApplyPickup(holder);
 
@@ -166,13 +236,18 @@ public class GrabbableObject : InteractableObject, IPickupable, IPushable
     [Rpc(RpcSources.All, RpcTargets.StateAuthority)]
     private void RPC_Push(Vector3 force) => ApplyPush(force);
 
+    public override void Render()
+    {
+        ApplyHeldVisualCorrection();
+    }
+
     public override void FixedUpdateNetwork()
     {
+        bool isHeld = HolderObject != null;
+        SetHeldPhysicsDisabled(isHeld);
+
         if (!Object.HasStateAuthority)
             return;
-
-        bool isHeld = HolderObject != null;
-        SetKinematic(isHeld);
 
         if (!isHeld) return;
 
@@ -180,10 +255,22 @@ public class GrabbableObject : InteractableObject, IPickupable, IPushable
         if (holder == null || holder.HoldPoint == null)
         {
             HolderObject = null;
-            SetKinematic(false);
+            SetHeldPhysicsDisabled(false);
             return;
         }
 
         rb.MovePosition(holder.HoldPoint.position);
+    }
+
+    private void ApplyHeldVisualCorrection()
+    {
+        if (Object.HasStateAuthority || HolderObject == null)
+            return;
+
+        var holder = HolderObject.GetComponent<PlayerGrabHandler>();
+        if (holder == null || holder.HoldPoint == null)
+            return;
+
+        transform.position = holder.HoldPoint.position;
     }
 }
