@@ -14,4 +14,10 @@ public abstract class InteractableObject : NetworkBehaviour
     {
         rb = GetComponent<Rigidbody>();
     }
+
+    public override void Spawned()
+    {
+        if (!Object.HasStateAuthority && !Object.IsInSimulation)
+            Runner.SetIsSimulated(Object, true);
+    }
 }

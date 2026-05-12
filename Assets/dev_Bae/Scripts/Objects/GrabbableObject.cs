@@ -64,9 +64,16 @@ public class GrabbableObject : InteractableObject, IPickupable, IPushable
 
     public void OnPush(Vector3 force, PlayerRef pusher)
     {
-        if (HolderObject != null) return;
-        if (Object.HasStateAuthority) ApplyPush(force);
-        else RPC_Push(force);
+        if (!CanPush()) return;
+
+        if (Object.HasStateAuthority)
+        {
+            ApplyPush(force);
+            return;
+        }
+
+        ApplyPush(force);
+        RPC_Push(force);
     }
 
     private void ApplyPickup(NetworkObject holder)
@@ -80,9 +87,8 @@ public class GrabbableObject : InteractableObject, IPickupable, IPushable
 
         HolderObject = holder;
         grabber.HeldGrabbable = Object;
-        rb.isKinematic = true;
-        rb.linearVelocity = Vector3.zero;
-        rb.angularVelocity = Vector3.zero;
+        ClearVelocityIfDynamic();
+        SetKinematic(true);
     }
 
     private void ApplyThrow(NetworkObject thrower, Vector3 velocity)
@@ -95,7 +101,8 @@ public class GrabbableObject : InteractableObject, IPickupable, IPushable
             grabber.HeldGrabbable = null;
 
         HolderObject = null;
-        rb.isKinematic = false;
+        SetKinematic(false);
+        rb.WakeUp();
         rb.linearVelocity = velocity;
         rb.angularVelocity = Vector3.zero;
     }
@@ -110,20 +117,41 @@ public class GrabbableObject : InteractableObject, IPickupable, IPushable
             grabber.HeldGrabbable = null;
 
         HolderObject = null;
-        rb.isKinematic = false;
+        SetKinematic(false);
+        rb.WakeUp();
         rb.linearVelocity = Vector3.zero;
         rb.angularVelocity = Vector3.zero;
     }
 
     private void ApplyPush(Vector3 force)
     {
-        if (HolderObject != null) return;
+        if (!CanPush()) return;
 
         float now = Runner.SimulationTime;
         if (now - lastPushTime < pushCooldown) return;
         lastPushTime = now;
 
+        rb.WakeUp();
         rb.AddForce(force, ForceMode.Impulse);
+    }
+
+    private bool CanPush()
+    {
+        return HolderObject == null && !rb.isKinematic;
+    }
+
+    private void ClearVelocityIfDynamic()
+    {
+        if (rb.isKinematic) return;
+
+        rb.linearVelocity = Vector3.zero;
+        rb.angularVelocity = Vector3.zero;
+    }
+
+    private void SetKinematic(bool isKinematic)
+    {
+        if (rb.isKinematic != isKinematic)
+            rb.isKinematic = isKinematic;
     }
 
     [Rpc(RpcSources.All, RpcTargets.StateAuthority)]
@@ -144,7 +172,7 @@ public class GrabbableObject : InteractableObject, IPickupable, IPushable
             return;
 
         bool isHeld = HolderObject != null;
-        rb.isKinematic = isHeld;
+        SetKinematic(isHeld);
 
         if (!isHeld) return;
 
@@ -152,6 +180,7 @@ public class GrabbableObject : InteractableObject, IPickupable, IPushable
         if (holder == null || holder.HoldPoint == null)
         {
             HolderObject = null;
+            SetKinematic(false);
             return;
         }
 

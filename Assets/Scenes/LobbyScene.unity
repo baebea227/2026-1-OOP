@@ -1718,7 +1718,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Fusion.Addons.Physics::Fusion.Addons.Physics.RunnerSimulatePhysics3D
   _physicsAuthority: 2
   _physicsTiming: 3
-  ClientPhysicsSimulation: 0
+  ClientPhysicsSimulation: 2
   DeltaTimeMultiplier: 1
   SetUnityFixedTimestep: 0
 --- !u!114 &1449713388
