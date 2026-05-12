@@ -11,12 +11,14 @@ public class PlayerInputHandler : NetworkBehaviour
     private InputAction sprintAction;
     private InputAction jumpAction;
     private InputAction grabAction;
+    private InputAction interactAction;
     private InputAction throwAction;
 
     public InputAction LookAction => lookAction;
 
     private bool localJumpPressed;
     private bool localGrabPressed;
+    private bool localInteractPressed;
     private bool localThrowPressed;
     private float localYaw;
 
@@ -30,6 +32,7 @@ public class PlayerInputHandler : NetworkBehaviour
         sprintAction = playerInput.actions["Sprint"];
         jumpAction = playerInput.actions["Jump"];
         grabAction = playerInput.actions["Grab"];
+        interactAction = playerInput.actions["Interact"];
         throwAction = playerInput.actions["Throw"];
     }
 
@@ -75,6 +78,9 @@ public class PlayerInputHandler : NetworkBehaviour
         if (grabAction.WasPressedThisFrame())
             localGrabPressed = true;
 
+        if (interactAction.WasPressedThisFrame())
+            localInteractPressed = true;
+
         if (throwAction.WasPressedThisFrame())
             localThrowPressed = true;
 
@@ -90,6 +96,7 @@ public class PlayerInputHandler : NetworkBehaviour
             isSprinting = sprintAction.IsPressed(),
             isJumping = localJumpPressed,
             isGrab = localGrabPressed,
+            isInteract = localInteractPressed,
             isThrow = localThrowPressed
         };
 
@@ -97,6 +104,7 @@ public class PlayerInputHandler : NetworkBehaviour
 
         localJumpPressed = false;
         localGrabPressed = false;
+        localInteractPressed = false;
         localThrowPressed = false;
     }
 }

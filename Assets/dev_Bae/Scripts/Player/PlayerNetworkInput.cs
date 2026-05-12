@@ -8,5 +8,6 @@ public struct PlayerNetworkInput : INetworkInput
     public NetworkBool isSprinting;
     public NetworkBool isJumping;
     public NetworkBool isGrab;
+    public NetworkBool isInteract;
     public NetworkBool isThrow;
 }

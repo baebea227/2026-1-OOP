@@ -39,6 +39,11 @@ public class PlayerGrabHandler : NetworkBehaviour
                 HeldGrabbable.GetComponent<GrabbableObject>().OnDrop(this);
         }
 
+        if (input.isInteract)
+        {
+            TryInteract();
+        }
+
         if (input.isThrow && HeldGrabbable != null)
         {
             if (cameraTransform == null) return;
@@ -59,5 +64,19 @@ public class PlayerGrabHandler : NetworkBehaviour
         if (grabbable == null) return;
 
         grabbable.OnPickup(this);
+    }
+
+    private void TryInteract()
+    {
+        if (cameraTransform == null) return;
+
+        Ray ray = new Ray(cameraTransform.position, cameraTransform.forward);
+        if (!Runner.GetPhysicsScene().Raycast(ray.origin, ray.direction, out var hit, grabRange))
+            return;
+
+        var lever = hit.collider.GetComponentInParent<Lever>();
+        if (lever == null) return;
+
+        lever.Operate();
     }
 }
