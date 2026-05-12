@@ -6,18 +6,108 @@ using UnityEngine;
 
 public class NetworkInputManager : MonoBehaviour, INetworkRunnerCallbacks
 {
+    [SerializeField] private NetworkRunner runner;
+
+    private PlayerInputHandler cachedLocalHandler;
+    private bool warnedMissingLocalHandler;
+    private bool loggedFallbackHandler;
+
+    private void OnEnable()
+    {
+        FindRunnerIfNull();
+
+        if (runner != null)
+            runner.AddCallbacks(this);
+    }
+
+    private void OnDisable()
+    {
+        if (runner != null)
+            runner.RemoveCallbacks(this);
+    }
+
+    private void FindRunnerIfNull()
+    {
+        if (runner == null)
+            runner = FindAnyObjectByType<NetworkRunner>();
+    }
+
     public void OnInput(NetworkRunner runner, NetworkInput input)
     {
-        // Multi-Peer 안전: static 대신 Runner별 SetPlayerObject 등록값으로 로컬 폰 조회
         var localObj = runner.GetPlayerObject(runner.LocalPlayer);
-        if (localObj == null) return;
+        PlayerInputHandler handler = null;
 
-        var handler = localObj.GetComponent<PlayerInputHandler>();
-        if (handler != null) handler.OnInput(runner, input);
+        if (localObj != null)
+        {
+            handler = localObj.GetComponent<PlayerInputHandler>();
+            cachedLocalHandler = handler;
+        }
+        else
+        {
+            handler = GetCachedOrFindLocalHandler();
+
+            if (handler != null)
+                runner.SetPlayerObject(runner.LocalPlayer, handler.Object);
+        }
+
+        if (handler != null)
+        {
+            handler.OnInput(runner, input);
+            return;
+        }
+
+        if (!warnedMissingLocalHandler)
+        {
+            Debug.LogWarning("[NetworkInputManager] Local input authority handler not found yet.");
+            warnedMissingLocalHandler = true;
+        }
+    }
+
+    private PlayerInputHandler GetCachedOrFindLocalHandler()
+    {
+        if (cachedLocalHandler != null &&
+            cachedLocalHandler.Object != null &&
+            cachedLocalHandler.Object.HasInputAuthority)
+        {
+            return cachedLocalHandler;
+        }
+
+        cachedLocalHandler = null;
+
+        PlayerInputHandler[] handlers = FindObjectsByType<PlayerInputHandler>(FindObjectsSortMode.None);
+
+        foreach (PlayerInputHandler handler in handlers)
+        {
+            if (handler.Object == null)
+                continue;
+
+            if (!handler.Object.HasInputAuthority)
+                continue;
+
+            cachedLocalHandler = handler;
+
+            if (!loggedFallbackHandler)
+            {
+                Debug.Log("[NetworkInputManager] Found local input authority handler by fallback search.");
+                loggedFallbackHandler = true;
+            }
+
+            return cachedLocalHandler;
+        }
+
+        return null;
     }
 
     public void OnPlayerJoined(NetworkRunner runner, PlayerRef player) { }
-    public void OnPlayerLeft(NetworkRunner runner, PlayerRef player) { }
+    public void OnPlayerLeft(NetworkRunner runner, PlayerRef player)
+    {
+        if (cachedLocalHandler != null &&
+            cachedLocalHandler.Object != null &&
+            cachedLocalHandler.Object.InputAuthority == player)
+        {
+            cachedLocalHandler = null;
+        }
+    }
     public void OnInputMissing(NetworkRunner runner, PlayerRef player, NetworkInput input) { }
     public void OnShutdown(NetworkRunner runner, ShutdownReason shutdownReason) { }
     public void OnConnectedToServer(NetworkRunner runner) { }
@@ -31,7 +121,12 @@ public class NetworkInputManager : MonoBehaviour, INetworkRunnerCallbacks
     public void OnReliableDataReceived(NetworkRunner runner, PlayerRef player, ReliableKey key, ArraySegment<byte> data) { }
     public void OnReliableDataProgress(NetworkRunner runner, PlayerRef player, ReliableKey key, float progress) { }
     public void OnSceneLoadDone(NetworkRunner runner) { }
-    public void OnSceneLoadStart(NetworkRunner runner) { }
+    public void OnSceneLoadStart(NetworkRunner runner)
+    {
+        cachedLocalHandler = null;
+        warnedMissingLocalHandler = false;
+        loggedFallbackHandler = false;
+    }
     public void OnObjectEnterAOI(NetworkRunner runner, NetworkObject obj, PlayerRef player) { }
     public void OnObjectExitAOI(NetworkRunner runner, NetworkObject obj, PlayerRef player) { }
 }

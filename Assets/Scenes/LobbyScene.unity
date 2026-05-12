@@ -1677,6 +1677,8 @@ GameObject:
   - component: {fileID: 1449713386}
   - component: {fileID: 1449713388}
   - component: {fileID: 1449713387}
+  - component: {fileID: 1449713393}
+  - component: {fileID: 1449713392}
   m_Layer: 0
   m_Name: NetworkCore
   m_TagString: Untagged
@@ -1778,6 +1780,35 @@ Transform:
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &1449713392
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1449713385}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 17da46d997feee643b376574e57a2750, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::NetworkInputManager
+  runner: {fileID: 0}
+--- !u!114 &1449713393
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1449713385}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 0f7e6a74bb574184bb1720fa62cb51ce, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::PlayerSpawner
+  runner: {fileID: 0}
+  playerPrefab:
+    RawGuidValue: 834c282afce20cd4cb84401337e727f7
+  gameSceneBuildIndex: 2
 --- !u!1 &1461228929
 GameObject:
   m_ObjectHideFlags: 0

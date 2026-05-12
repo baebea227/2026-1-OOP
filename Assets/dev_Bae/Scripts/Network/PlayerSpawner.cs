@@ -3,34 +3,79 @@ using System.Collections.Generic;
 using Fusion;
 using Fusion.Sockets;
 using UnityEngine;
+using UnityEngine.SceneManagement;
 
 public class PlayerSpawner : MonoBehaviour, INetworkRunnerCallbacks
 {
-    public NetworkPrefabRef playerPrefab;
+    [SerializeField] private NetworkRunner runner;
+    [SerializeField] private NetworkPrefabRef playerPrefab;
+    [SerializeField] private int gameSceneBuildIndex = 2;
 
-    private Dictionary<PlayerRef, NetworkObject> spawnedPlayers = new Dictionary<PlayerRef, NetworkObject>();
+    private readonly Dictionary<PlayerRef, NetworkObject> spawnedPlayers = new Dictionary<PlayerRef, NetworkObject>();
 
-    // Host 모드: 호스트만 폰을 Spawn하고 StateAuthority를 가짐. 클라는 InputAuthority만 보유.
+    private void OnEnable()
+    {
+        FindRunnerIfNull();
+
+        if (runner != null)
+            runner.AddCallbacks(this);
+    }
+
+    private void OnDisable()
+    {
+        if (runner != null)
+            runner.RemoveCallbacks(this);
+    }
+
+    private void FindRunnerIfNull()
+    {
+        if (runner == null)
+            runner = FindAnyObjectByType<NetworkRunner>();
+    }
+
     public void OnPlayerJoined(NetworkRunner runner, PlayerRef player)
     {
-        if (!runner.IsServer) return;
+        if (!IsGameSceneLoaded())
+            return;
 
-        Vector3 spawnPos = new Vector3(player.RawEncoded * 2, 1, 0);
-        NetworkObject obj = runner.Spawn(playerPrefab, spawnPos, Quaternion.identity, player);
-        if (obj == null) return;
-
-        spawnedPlayers.Add(player, obj);
-        // 모든 피어가 runner.GetPlayerObject(player)로 자기 폰을 찾을 수 있도록 등록
-        runner.SetPlayerObject(player, obj);
+        SpawnPlayerIfNeeded(runner, player);
     }
 
     public void OnPlayerLeft(NetworkRunner runner, PlayerRef player)
     {
-        if (spawnedPlayers.TryGetValue(player, out NetworkObject obj))
+        if (spawnedPlayers.TryGetValue(player, out NetworkObject obj) && obj != null)
+            runner.Despawn(obj);
+
+        spawnedPlayers.Remove(player);
+    }
+
+    private void SpawnPlayerIfNeeded(NetworkRunner runner, PlayerRef player)
+    {
+        if (!runner.IsServer)
+            return;
+
+        if (spawnedPlayers.TryGetValue(player, out NetworkObject existing) && existing != null)
+            return;
+
+        Vector3 spawnPos = new Vector3(player.RawEncoded * 2f, 1f, 0f);
+        NetworkObject obj = runner.Spawn(playerPrefab, spawnPos, Quaternion.identity, player);
+
+        if (obj == null)
+            return;
+
+        spawnedPlayers[player] = obj;
+        runner.SetPlayerObject(player, obj);
+    }
+
+    private bool IsGameSceneLoaded()
+    {
+        for (int i = 0; i < SceneManager.sceneCount; i++)
         {
-            if (obj != null) runner.Despawn(obj);
-            spawnedPlayers.Remove(player);
+            if (SceneManager.GetSceneAt(i).buildIndex == gameSceneBuildIndex)
+                return true;
         }
+
+        return false;
     }
 
     public void OnInput(NetworkRunner runner, NetworkInput input) { }
@@ -46,8 +91,21 @@ public class PlayerSpawner : MonoBehaviour, INetworkRunnerCallbacks
     public void OnHostMigration(NetworkRunner runner, HostMigrationToken hostMigrationToken) { }
     public void OnReliableDataReceived(NetworkRunner runner, PlayerRef player, ReliableKey key, ArraySegment<byte> data) { }
     public void OnReliableDataProgress(NetworkRunner runner, PlayerRef player, ReliableKey key, float progress) { }
-    public void OnSceneLoadDone(NetworkRunner runner) { }
-    public void OnSceneLoadStart(NetworkRunner runner) { }
+
+    public void OnSceneLoadDone(NetworkRunner runner)
+    {
+        if (!IsGameSceneLoaded())
+            return;
+
+        foreach (PlayerRef player in runner.ActivePlayers)
+            SpawnPlayerIfNeeded(runner, player);
+    }
+
+    public void OnSceneLoadStart(NetworkRunner runner)
+    {
+        spawnedPlayers.Clear();
+    }
+
     public void OnObjectEnterAOI(NetworkRunner runner, NetworkObject obj, PlayerRef player) { }
     public void OnObjectExitAOI(NetworkRunner runner, NetworkObject obj, PlayerRef player) { }
 }
