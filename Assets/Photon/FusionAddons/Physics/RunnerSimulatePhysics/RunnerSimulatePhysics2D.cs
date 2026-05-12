@@ -23,10 +23,12 @@ namespace Fusion.Addons.Physics {
     }
 
     /// <inheritdoc/>
+#pragma warning disable CS0618 // Required to inspect Unity's deprecated Auto Sync Transforms project setting.
     protected override bool AutoSyncTransforms {
       get => Physics2D.autoSyncTransforms;
       set => Physics2D.autoSyncTransforms = value;
     }
+#pragma warning restore CS0618
 
     /// <inheritdoc/>
     protected override PhysicsTimings UnityPhysicsMode => (PhysicsTimings)Physics2D.simulationMode;
