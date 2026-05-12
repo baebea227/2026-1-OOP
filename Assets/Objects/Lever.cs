@@ -2,6 +2,7 @@ using System.Collections;
 using System.Runtime.InteropServices.WindowsRuntime;
 using Unity.VisualScripting;
 using UnityEngine;
+using Fusion;
 
 public class Lever : OperatableObject
 {
@@ -44,4 +45,6 @@ public class Lever : OperatableObject
             StartCoroutine(OperateCooldown());
         }
     }
+
+    public void TryOperate(NetworkObject operatorObject) {}
 }

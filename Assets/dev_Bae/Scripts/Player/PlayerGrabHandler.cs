@@ -151,7 +151,7 @@ public class PlayerGrabHandler : NetworkBehaviour
         var lever = hit.collider.GetComponentInParent<Lever>();
         if (lever == null) return;
 
-        lever.Operate();
+        lever.TryOperate(Object);
     }
 
     [Rpc(RpcSources.InputAuthority, RpcTargets.StateAuthority)]
