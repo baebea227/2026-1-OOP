@@ -40,6 +40,7 @@ public class WaitingRoomManager : MonoBehaviour, INetworkRunnerCallbacks
     [SerializeField] private TMP_Text player2Text;
     [SerializeField] private TMP_Text statusText;
 
+    [SerializeField] private Button CopyButton;
     [SerializeField] private Button readyButton;
     [SerializeField] private Button startGameButton;
     [SerializeField] private Button leaveButton;
@@ -79,6 +80,9 @@ public class WaitingRoomManager : MonoBehaviour, INetworkRunnerCallbacks
 
         if (leaveButton != null)
             leaveButton.onClick.AddListener(OnClickLeave);
+
+        if (CopyButton != null)
+            CopyButton.onClick.AddListener(OnClickCopyButton);
     }
 
     private void OnDisable()
@@ -96,6 +100,9 @@ public class WaitingRoomManager : MonoBehaviour, INetworkRunnerCallbacks
 
         if (leaveButton != null)
             leaveButton.onClick.RemoveListener(OnClickLeave);
+
+        if (CopyButton != null)
+            CopyButton.onClick.RemoveListener(OnClickCopyButton);
     }
 
     private void Start()
@@ -278,6 +285,24 @@ public class WaitingRoomManager : MonoBehaviour, INetworkRunnerCallbacks
 
         if (sceneFlowManager != null)
             sceneFlowManager.LoadLobbySceneLocal();
+    }
+
+    /// <summary>
+    /// Copy 버튼 클릭 시 현재 방 코드를 클립보드에 복사함
+    /// </summary>
+    private void OnClickCopyButton()
+    {
+        if (runner == null || runner.SessionInfo == null)
+        {
+            SetStatus("Room code not found");
+            return;
+        }
+
+        string roomCode = runner.SessionInfo.Name;
+
+        GUIUtility.systemCopyBuffer = roomCode;
+
+        SetStatus("Room code copied: " + roomCode);
     }
 
     /// <summary>

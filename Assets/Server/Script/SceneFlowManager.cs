@@ -18,9 +18,7 @@ public class SceneFlowManager : MonoBehaviour
     private void Awake()
     {
         if (dontDestroyOnLoad)
-        {
             DontDestroyOnLoad(gameObject);
-        }
 
         FindRunnerIfNull();
     }
@@ -28,14 +26,36 @@ public class SceneFlowManager : MonoBehaviour
     private void FindRunnerIfNull()
     {
         if (runner == null)
-        {
-            runner = FindObjectOfType<NetworkRunner>();
-        }
+            runner = FindAnyObjectByType<NetworkRunner>();
+    }
+
+    public NetworkSceneInfo GetWaitingRoomSceneInfo()
+    {
+        return CreateSceneInfo(waitingRoomSceneBuildIndex);
+    }
+
+    public NetworkSceneInfo GetGameSceneInfo()
+    {
+        return CreateSceneInfo(gameSceneBuildIndex);
+    }
+
+    private NetworkSceneInfo CreateSceneInfo(int sceneBuildIndex)
+    {
+        SceneRef sceneRef = SceneRef.FromIndex(sceneBuildIndex);
+
+        NetworkSceneInfo sceneInfo = new NetworkSceneInfo();
+        sceneInfo.AddSceneRef(sceneRef, LoadSceneMode.Single);
+
+        return sceneInfo;
+    }
+
+    public bool IsGameSceneLoaded()
+    {
+        return UnityEngine.SceneManagement.SceneManager.GetActiveScene().buildIndex == gameSceneBuildIndex;
     }
 
     public void LoadLobbySceneLocal()
     {
-        // 로비로 돌아갈 때는 보통 세션을 먼저 종료한 뒤 로컬 씬 이동
         UnityEngine.SceneManagement.SceneManager.LoadScene(lobbySceneBuildIndex);
     }
 
@@ -55,41 +75,22 @@ public class SceneFlowManager : MonoBehaviour
 
         if (runner == null)
         {
-            Debug.LogError("[SceneFlowManager] NetworkRunner를 찾을 수 없음");
+            Debug.LogError("[SceneFlowManager] NetworkRunner not found");
             return;
         }
 
         if (!runner.IsRunning)
         {
-            Debug.LogError("[SceneFlowManager] NetworkRunner가 실행 중이 아님");
+            Debug.LogError("[SceneFlowManager] NetworkRunner is not running");
             return;
         }
 
         if (!runner.IsSceneAuthority)
         {
-            Debug.LogWarning("[SceneFlowManager] 씬 전환은 Scene Authority만 호출해야 함");
+            Debug.LogWarning("[SceneFlowManager] Only SceneAuthority can load network scenes");
             return;
         }
 
-        SceneRef sceneRef = SceneRef.FromIndex(sceneBuildIndex);
-
-        Debug.Log($"[SceneFlowManager] 네트워크 씬 전환: Build Index {sceneBuildIndex}");
-
-        runner.LoadScene(sceneRef, LoadSceneMode.Single);
-    }
-
-    public int GetLobbySceneIndex()
-    {
-        return lobbySceneBuildIndex;
-    }
-
-    public int GetWaitingRoomSceneIndex()
-    {
-        return waitingRoomSceneBuildIndex;
-    }
-
-    public int GetGameSceneIndex()
-    {
-        return gameSceneBuildIndex;
+        runner.LoadScene(SceneRef.FromIndex(sceneBuildIndex), LoadSceneMode.Single);
     }
 }

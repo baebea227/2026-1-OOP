@@ -15,13 +15,11 @@ public class NetworkSessionManager : MonoBehaviour, INetworkRunnerCallbacks
     [Header("Session Setting")]
     [SerializeField] private string lobbyName = "MainLobby";
     [SerializeField] private int maxPlayers = 2;
-
-    [Header("Scene Setting")]
-    [Tooltip("Waiting room scene Build Index after creating or joining a session")]
-    [SerializeField] private int waitingRoomSceneBuildIndex = 1;
+    [SerializeField] private SceneFlowManager sceneFlowManager;
 
     [Header("Option")]
     [SerializeField] private bool dontDestroyOnLoad = true;
+
 
     public event Action<List<SessionInfo>> OnSessionListChanged;
     public event Action<string> OnStatusChanged;
@@ -78,6 +76,16 @@ public class NetworkSessionManager : MonoBehaviour, INetworkRunnerCallbacks
         if (sceneManager == null)
         {
             sceneManager = gameObject.AddComponent<NetworkSceneManagerDefault>();
+        }
+        
+        if (sceneFlowManager == null)
+        {
+            sceneFlowManager = GetComponent<SceneFlowManager>();
+        }
+
+        if (sceneFlowManager == null)
+        {
+            sceneFlowManager = FindAnyObjectByType<SceneFlowManager>();
         }
 
         runner.RemoveCallbacks(this);
@@ -159,6 +167,13 @@ public class NetworkSessionManager : MonoBehaviour, INetworkRunnerCallbacks
 
         sessionName = NormalizeSessionName(sessionName);
 
+        if (sceneFlowManager == null)
+        {
+            SetStatus("SceneFlowManager not found");
+            SetBusy(false);
+            return;
+        }
+
         if (string.IsNullOrWhiteSpace(sessionName))
         {
             SetStatus("Room code is empty");
@@ -195,7 +210,7 @@ public class NetworkSessionManager : MonoBehaviour, INetworkRunnerCallbacks
             IsVisible = true,
 
             // 대기방 씬 로딩
-            Scene = CreateSceneInfo(waitingRoomSceneBuildIndex),
+            Scene = sceneFlowManager.GetWaitingRoomSceneInfo(),
             SceneManager = sceneManager
         };
 
@@ -260,16 +275,6 @@ public class NetworkSessionManager : MonoBehaviour, INetworkRunnerCallbacks
             return "";
 
         return sessionName.Trim().ToUpper();
-    }
-
-    private NetworkSceneInfo CreateSceneInfo(int sceneBuildIndex)
-    {
-        SceneRef sceneRef = SceneRef.FromIndex(sceneBuildIndex);
-
-        NetworkSceneInfo sceneInfo = new NetworkSceneInfo();
-        sceneInfo.AddSceneRef(sceneRef, LoadSceneMode.Single);
-
-        return sceneInfo;
     }
 
     private void SetStatus(string message)
