@@ -5,9 +5,6 @@ using UnityEngine.UI;
 
 public class LobbyManager : MonoBehaviour
 {
-    [Header("Manager")]
-    [SerializeField] private NetworkSessionManager networkSessionManager;
-
     [Header("Lobby UI")]
     [SerializeField] private TMP_InputField roomCodeInput;
     [SerializeField] private Button createRoomButton;
@@ -17,15 +14,9 @@ public class LobbyManager : MonoBehaviour
     [Header("Status Option")]
     [SerializeField] private float statusHideDelay = 3f;
 
+    private NetworkSessionManager networkSessionManager;
     private Coroutine statusCoroutine;
-
-    private void Awake()
-    {
-        if (networkSessionManager == null)
-        {
-            networkSessionManager = FindAnyObjectByType<NetworkSessionManager>();
-        }
-    }
+    private bool isSubscribed;
 
     private void OnEnable()
     {
@@ -35,11 +26,7 @@ public class LobbyManager : MonoBehaviour
         if (joinRoomButton != null)
             joinRoomButton.onClick.AddListener(OnClickJoinRoom);
 
-        if (networkSessionManager != null)
-        {
-            networkSessionManager.OnStatusChanged += SetStatus;
-            networkSessionManager.OnBusyStateChanged += SetButtonsInteractable;
-        }
+        ResolveNetworkSessionManager(false);
     }
 
     private void OnDisable()
@@ -50,11 +37,7 @@ public class LobbyManager : MonoBehaviour
         if (joinRoomButton != null)
             joinRoomButton.onClick.RemoveListener(OnClickJoinRoom);
 
-        if (networkSessionManager != null)
-        {
-            networkSessionManager.OnStatusChanged -= SetStatus;
-            networkSessionManager.OnBusyStateChanged -= SetButtonsInteractable;
-        }
+        UnsubscribeFromNetworkSessionManager();
     }
 
     private void Start()
@@ -62,19 +45,78 @@ public class LobbyManager : MonoBehaviour
         if (statusText != null)
             statusText.gameObject.SetActive(false);
 
-        if (networkSessionManager == null)
-        {
-            SetStatus("NetworkSessionManager not found");
-            SetButtonsInteractable(false);
-            return;
-        }
+        if (roomCodeInput == null)
+            Debug.LogError("[LobbyManager] roomCodeInput is not assigned");
+
+        if (createRoomButton == null)
+            Debug.LogError("[LobbyManager] createRoomButton is not assigned");
+
+        if (joinRoomButton == null)
+            Debug.LogError("[LobbyManager] joinRoomButton is not assigned");
+
+        if (statusText == null)
+            Debug.LogError("[LobbyManager] statusText is not assigned");
+
+        ResolveNetworkSessionManager(false);
 
         SetStatus("Lobby ready");
     }
 
+    private bool ResolveNetworkSessionManager(bool showError)
+    {
+        NetworkSessionManager manager = NetworkSessionManager.Instance;
+
+        if (manager == null)
+            manager = FindAnyObjectByType<NetworkSessionManager>(FindObjectsInactive.Include);
+
+        if (manager == null)
+        {
+            networkSessionManager = null;
+
+            if (showError)
+            {
+                SetStatus("NetworkSessionManager not found");
+                Debug.LogError("[LobbyManager] networkSessionManager is null");
+            }
+
+            return false;
+        }
+
+        if (networkSessionManager != manager)
+        {
+            UnsubscribeFromNetworkSessionManager();
+
+            networkSessionManager = manager;
+
+            networkSessionManager.OnStatusChanged += SetStatus;
+            networkSessionManager.OnBusyStateChanged += SetButtonsInteractable;
+            isSubscribed = true;
+
+            Debug.Log("[LobbyManager] NetworkSessionManager resolved: " + networkSessionManager.name);
+        }
+
+        return true;
+    }
+
+    private void UnsubscribeFromNetworkSessionManager()
+    {
+        if (!isSubscribed)
+            return;
+
+        if (networkSessionManager != null)
+        {
+            networkSessionManager.OnStatusChanged -= SetStatus;
+            networkSessionManager.OnBusyStateChanged -= SetButtonsInteractable;
+        }
+
+        isSubscribed = false;
+    }
+
     private void OnClickCreateRoom()
     {
-        if (networkSessionManager == null)
+        Debug.Log("[LobbyManager] Create Room button clicked");
+
+        if (!ResolveNetworkSessionManager(true))
             return;
 
         networkSessionManager.CreateSessionWithRandomCode();
@@ -82,7 +124,9 @@ public class LobbyManager : MonoBehaviour
 
     private void OnClickJoinRoom()
     {
-        if (networkSessionManager == null)
+        Debug.Log("[LobbyManager] Join Room button clicked");
+
+        if (!ResolveNetworkSessionManager(true))
             return;
 
         string roomCode = GetRoomCode();
@@ -90,8 +134,11 @@ public class LobbyManager : MonoBehaviour
         if (string.IsNullOrWhiteSpace(roomCode))
         {
             SetStatus("Please enter a room code to join");
+            Debug.LogWarning("[LobbyManager] Room code input is empty");
             return;
         }
+
+        Debug.Log("[LobbyManager] Trying to join room: " + roomCode);
 
         networkSessionManager.JoinSession(roomCode);
     }
@@ -124,7 +171,6 @@ public class LobbyManager : MonoBehaviour
         if (statusCoroutine != null)
             StopCoroutine(statusCoroutine);
 
-        // Keep the room code visible so the player can share it with a friend.
         if (message.Contains("Room Code"))
             return;
 

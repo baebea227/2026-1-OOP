@@ -5,12 +5,15 @@ using Fusion;
 using Fusion.Sockets;
 using UnityEngine;
 using UnityEngine.SceneManagement;
+using Fusion.Addons.Physics;
 
 public class NetworkSessionManager : MonoBehaviour, INetworkRunnerCallbacks
 {
     [Header("Fusion")]
-    [SerializeField] private NetworkRunner runner;
-    [SerializeField] private NetworkSceneManagerDefault sceneManager;
+    public static NetworkSessionManager Instance { get; private set; }
+    private NetworkRunner runner;
+    private NetworkSceneManagerDefault sceneManager;
+    private GameObject runnerObject;
 
     [Header("Session Setting")]
     [SerializeField] private string lobbyName = "MainLobby";
@@ -40,60 +43,68 @@ public class NetworkSessionManager : MonoBehaviour, INetworkRunnerCallbacks
 
     private void Awake()
     {
-        if (dontDestroyOnLoad)
+        if (Instance != null && Instance != this)
         {
-            DontDestroyOnLoad(gameObject);
+            Debug.LogWarning("[NetworkSessionManager] Duplicate NetworkCore destroyed: " + gameObject.name);
+            Destroy(gameObject);
+            return;
         }
 
-        SetupRunner();
-    }
+        Instance = this;
 
+        if (transform.parent != null)
+            transform.SetParent(null);
+
+        if (dontDestroyOnLoad)
+            DontDestroyOnLoad(gameObject);
+
+        if (sceneFlowManager == null)
+            sceneFlowManager = GetComponent<SceneFlowManager>();
+
+        Debug.Log("[NetworkSessionManager] Awake completed: " + gameObject.name);
+    }
+    
     private void OnDestroy()
     {
+        Debug.LogWarning("[NetworkSessionManager] OnDestroy called: " + gameObject.name);
+
         if (runner != null)
-        {
             runner.RemoveCallbacks(this);
-        }
+
+        if (Instance == this)
+            Instance = null;
     }
 
-    private void SetupRunner()
+        private void SetupRunner()
     {
-        if (runner == null)
+        if (runner != null)
+            return;
+
+        // 혹시 이전 런타임 Runner 오브젝트가 남아있으면 제거
+        GameObject oldRuntime = GameObject.Find("NetworkRunner_Runtime");
+        if (oldRuntime != null)
         {
-            runner = GetComponent<NetworkRunner>();
+            Destroy(oldRuntime);
         }
 
-        if (runner == null)
-        {
-            runner = gameObject.AddComponent<NetworkRunner>();
-        }
+        runnerObject = new GameObject("NetworkRunner_Runtime");
 
-        if (sceneManager == null)
-        {
-            sceneManager = GetComponent<NetworkSceneManagerDefault>();
-        }
+        // NetworkCore의 자식으로 두지 않는다.
+        // 따로 DontDestroyOnLoad 루트 오브젝트로 둔다.
+        DontDestroyOnLoad(runnerObject);
 
-        if (sceneManager == null)
-        {
-            sceneManager = gameObject.AddComponent<NetworkSceneManagerDefault>();
-        }
-        
-        if (sceneFlowManager == null)
-        {
-            sceneFlowManager = GetComponent<SceneFlowManager>();
-        }
+        runner = runnerObject.AddComponent<NetworkRunner>();
+        sceneManager = runnerObject.AddComponent<NetworkSceneManagerDefault>();
 
-        if (sceneFlowManager == null)
-        {
-            sceneFlowManager = FindAnyObjectByType<SceneFlowManager>();
-        }
+        // 게임 씬 물리 동기화용
+        runnerObject.AddComponent<RunnerSimulatePhysics3D>();
+
+        runner.ProvideInput = false;
 
         runner.RemoveCallbacks(this);
         runner.AddCallbacks(this);
 
-        // 로비에서는 입력 받을 필요 없음.
-        // 실제 게임맵에 들어간 뒤 NetworkInputManager가 입력을 담당함.
-        runner.ProvideInput = false;
+        Debug.Log("[NetworkSessionManager] NetworkRunner_Runtime created");
     }
 
     public async void JoinLobby()
@@ -101,31 +112,7 @@ public class NetworkSessionManager : MonoBehaviour, INetworkRunnerCallbacks
         await JoinLobbyAsync();
     }
 
-    private async Task JoinLobbyAsync()
-    {
-        if (isBusy)
-            return;
-
-        SetBusy(true);
-        SetStatus("Connecting to Photon lobby...");
-
-        SetupRunner();
-
-        var result = await runner.JoinSessionLobby(SessionLobby.Custom, lobbyName);
-
-        if (result.Ok)
-        {
-            SetStatus("Connected to Photon lobby. Waiting for the session list...");
-        }
-        else
-        {
-            SetStatus("Failed to connect to Photon lobby: " + result.ShutdownReason);
-        }
-
-        SetBusy(false);
-    }
-
-    public async void CreateSession(string sessionName)
+        public async void CreateSession(string sessionName)
     {
         await StartSessionAsync(GameMode.Host, sessionName);
     }
@@ -142,6 +129,41 @@ public class NetworkSessionManager : MonoBehaviour, INetworkRunnerCallbacks
         SetStatus("Room Code: " + roomCode);
 
         CreateSession(roomCode);
+    }
+
+    private async Task JoinLobbyAsync()
+    {
+        if (isBusy)
+            return;
+
+        SetBusy(true);
+        SetStatus("Connecting to Photon lobby...");
+
+        try
+        {
+            SetupRunner();
+
+            var result = await runner.JoinSessionLobby(SessionLobby.Custom, lobbyName);
+
+            if (result.Ok)
+            {
+                SetStatus("Connected to Photon lobby. Waiting for the session list...");
+            }
+            else
+            {
+                SetStatus("Failed to connect to Photon lobby: " + result.ShutdownReason);
+                await ResetRunnerAsync();
+            }
+        }
+        catch (Exception e)
+        {
+            SetStatus("Join lobby error: " + e.Message);
+            await ResetRunnerAsync();
+        }
+        finally
+        {
+            SetBusy(false);
+        }
     }
 
     private string GenerateRoomCode()
@@ -167,13 +189,6 @@ public class NetworkSessionManager : MonoBehaviour, INetworkRunnerCallbacks
 
         sessionName = NormalizeSessionName(sessionName);
 
-        if (sceneFlowManager == null)
-        {
-            SetStatus("SceneFlowManager not found");
-            SetBusy(false);
-            return;
-        }
-
         if (string.IsNullOrWhiteSpace(sessionName))
         {
             SetStatus("Room code is empty");
@@ -181,92 +196,106 @@ public class NetworkSessionManager : MonoBehaviour, INetworkRunnerCallbacks
         }
 
         SetBusy(true);
-        SetupRunner();
 
-        runner.ProvideInput = true;
-
-        if (gameMode == GameMode.Host)
+        try
         {
-            SetStatus($"Creating room: {sessionName}");
-        }
-        else
-        {
-            SetStatus($"Joining room: {sessionName}");
-        }
+            SetupRunner();
 
-        StartGameArgs args = new StartGameArgs
-        {
-            GameMode = gameMode,
-            SessionName = sessionName,
-
-            // 이 이름이 같아야 같은 로비의 방 목록에서 보임
-            CustomLobbyName = lobbyName,
-
-            // 2인 전용
-            PlayerCount = maxPlayers,
-
-            // 방 참가 가능 / 로비 목록 표시
-            IsOpen = true,
-            IsVisible = true,
-
-            // 대기방 씬 로딩
-            Scene = sceneFlowManager.GetWaitingRoomSceneInfo(),
-            SceneManager = sceneManager
-        };
-
-        // Client가 없는 방을 실수로 새로 만들지 못하게 막음
-        if (gameMode == GameMode.Client)
-        {
-            args.EnableClientSessionCreation = false;
-        }
-
-        var result = await runner.StartGame(args);
-
-        if (result.Ok)
-        {
-            if (gameMode == GameMode.Host)
+            if (sceneFlowManager == null)
             {
-                SetStatus($"Room created successfully: {sessionName}");
+                SetStatus("SceneFlowManager not found");
+                return;
+            }
+
+            runner.ProvideInput = true;
+
+            if (gameMode == GameMode.Host)
+                SetStatus($"Creating room: {sessionName}");
+            else
+                SetStatus($"Joining room: {sessionName}");
+
+            StartGameArgs args = new StartGameArgs
+            {
+                GameMode = gameMode,
+                SessionName = sessionName,
+
+                CustomLobbyName = lobbyName,
+
+                PlayerCount = maxPlayers,
+
+                IsOpen = true,
+                IsVisible = true,
+
+                Scene = sceneFlowManager.GetWaitingRoomSceneInfo(),
+                SceneManager = sceneManager
+            };
+
+            // Client가 없는 방을 실수로 새로 만들지 못하게 막음
+            if (gameMode == GameMode.Client)
+            {
+                args.EnableClientSessionCreation = false;
+            }
+
+            var result = await runner.StartGame(args);
+
+            if (result.Ok)
+            {
+                if (gameMode == GameMode.Host)
+                    SetStatus($"Room created successfully: {sessionName}");
+                else
+                    SetStatus($"Joined room successfully: {sessionName}");
+
+                OnSessionStartedEvent?.Invoke();
             }
             else
             {
-                SetStatus($"Joined room successfully: {sessionName}");
+                SetStatus("Failed to create or join room: " + result.ShutdownReason);
+
+                // 중요:
+                // StartGame 실패 후 같은 Runner를 재사용하면 다음 시도에서 멈출 수 있음
+                await ResetRunnerAsync();
             }
-
-            OnSessionStartedEvent?.Invoke();
         }
-        else
+        catch (Exception e)
         {
-            SetStatus("Failed to create or join room: " + result.ShutdownReason);
+            SetStatus("Session start error: " + e.Message);
 
-            // 실패한 NetworkRunner는 재사용하면 꼬일 수 있음.
-            // 일단 버튼은 다시 살리고, 개발 중에는 Play 재시작하는 게 안전함.
-            runner.ProvideInput = false;
+            // 예외가 나도 다음 시도 가능하게 Runner 초기화
+            await ResetRunnerAsync();
         }
-
-        SetBusy(false);
+        finally
+        {
+            SetBusy(false);
+        }
     }
 
     public async void LeaveSession()
     {
-        if (runner == null)
-        {
-            SetStatus("No session to leave");
-            return;
-        }
-
         if (isBusy)
             return;
 
         SetBusy(true);
         SetStatus("Leaving session...");
 
-        await runner.Shutdown();
+        try
+        {
+            await ResetRunnerAsync();
 
-        SetStatus("Session closed");
-        SetBusy(false);
+            if (this == null)
+                return;
 
-        OnSessionShutdownEvent?.Invoke();
+            SetStatus("Session closed");
+            OnSessionShutdownEvent?.Invoke();
+        }
+        catch (Exception e)
+        {
+            SetStatus("Leave session error: " + e.Message);
+        }
+        finally
+        {
+            if (this != null)
+                SetBusy(false);
+        }
     }
 
     private string NormalizeSessionName(string sessionName)
@@ -287,6 +316,48 @@ public class NetworkSessionManager : MonoBehaviour, INetworkRunnerCallbacks
     {
         isBusy = busy;
         OnBusyStateChanged?.Invoke(!busy);
+    }
+    private async Task ResetRunnerAsync()
+    {
+        NetworkRunner oldRunner = runner;
+        GameObject oldRunnerObject = runnerObject;
+
+        runner = null;
+        sceneManager = null;
+        runnerObject = null;
+
+        if (oldRunner != null)
+        {
+            oldRunner.RemoveCallbacks(this);
+
+            try
+            {
+                if (oldRunner.IsRunning)
+                {
+                    await oldRunner.Shutdown(false);
+                }
+            }
+            catch (Exception e)
+            {
+                Debug.LogWarning("[NetworkSessionManager] Runner shutdown during reset failed: " + e.Message);
+            }
+        }
+
+        if (oldRunnerObject != null)
+        {
+            Destroy(oldRunnerObject);
+        }
+        else if (oldRunner != null && oldRunner.gameObject != gameObject)
+        {
+            Destroy(oldRunner.gameObject);
+        }
+
+        await Task.Yield();
+
+        if (this == null)
+            return;
+
+        Debug.Log("[NetworkSessionManager] Runner reset completed");
     }
 
     public int GetCurrentPlayerCount()
@@ -370,13 +441,15 @@ public class NetworkSessionManager : MonoBehaviour, INetworkRunnerCallbacks
         OnPlayerLeftEvent?.Invoke(player);
     }
 
-    public void OnShutdown(NetworkRunner runner, ShutdownReason shutdownReason)
+    public void OnShutdown(NetworkRunner shutdownRunner, ShutdownReason shutdownReason)
     {
         SetStatus("Runner shutdown: " + shutdownReason);
 
-        this.runner.ProvideInput = false;
+        if (runner != null && runner == shutdownRunner)
+            runner.ProvideInput = false;
 
-        OnSessionShutdownEvent?.Invoke();
+        // 여기서는 이벤트 호출하지 않음.
+        // LeaveSession 또는 StartSession 실패 처리 쪽에서 직접 처리하게 둔다.
     }
 
     public void OnConnectRequest(NetworkRunner runner, NetworkRunnerCallbackArgs.ConnectRequest request, byte[] token)

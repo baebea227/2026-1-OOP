@@ -50,21 +50,24 @@ TemporaryDependencyNodeTargetIdentifier=netstandard2.1
 /warnaserror+:NU1605
 
 [sourceFiles]
-Assets/dev_Bae/
- FirstPersonCamera.cs
- GrabbableObject.cs
- HeavyObject.cs
- IActivatable.cs
- InteractableObject.cs
- IPickupable.cs
- IPushable.cs
- NetworkInputManager.cs
- PlayerAnimatorController.cs
- PlayerGrabHandler.cs
- PlayerInputHandler.cs
- PlayerMovement.cs
- PlayerNetworkInput.cs
- PlayerSpawner.cs
+Assets/dev_Bae/Scripts/
+ Camera/FirstPersonCamera.cs
+ Network/
+  NetworkInputManager.cs
+  PlayerSpawner.cs
+ Objects/
+  GrabbableObject.cs
+  HeavyObject.cs
+  IActivatable.cs
+  InteractableObject.cs
+  IPickupable.cs
+  IPushable.cs
+ Player/
+  PlayerAnimatorController.cs
+  PlayerGrabHandler.cs
+  PlayerInputHandler.cs
+  PlayerMovement.cs
+  PlayerNetworkInput.cs
 Assets/
  Downloads/Dummy/Human Animations/Scripts/SpineProxy.cs
  Objects/
@@ -74,6 +77,8 @@ Assets/
   OperatableObject.cs
   PlatformStructure.cs
   PressurePlate.cs
+  Stage.cs
+  StageManager.cs
   StructureSet.cs
  Server/Script/
   LobbyManager.cs
