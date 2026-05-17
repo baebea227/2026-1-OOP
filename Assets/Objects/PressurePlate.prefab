@@ -168,7 +168,7 @@ Transform:
   m_GameObject: {fileID: 8278928567377632354}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 12.68, y: -2.5, z: -5.04}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children:
@@ -211,6 +211,10 @@ MonoBehaviour:
   operateState: 0
   isDisposable: 0
   connectedObj: {fileID: 0}
+  meshSet:
+  - {fileID: 2100000, guid: 096c60b100915c24eb0448d7b42fc9be, type: 2}
+  - {fileID: 2100000, guid: 5001bdb5c7b0158479855a3e53450735, type: 2}
+  - {fileID: 2100000, guid: 75a2ff7399978544388f02f4a0c6dbdc, type: 2}
 --- !u!114 &3278731478944723688
 MonoBehaviour:
   m_ObjectHideFlags: 0

@@ -4,18 +4,41 @@ using UnityEngine;
 public class PressurePlate : OperatableObject
 {
     int triggerCnt;
+    [SerializeField] Material[] meshSet;
+    MeshRenderer mesh;
 
     protected override void Awake()
     {
         base.Awake();
+        mesh = GetComponentInChildren<MeshRenderer>();
+
+        init();
+    }
+    
+    void init()
+    {
         operateState = false;
         triggerCnt = 0;
+        int index = operateState ? 1 : 0;
+        mesh.material = meshSet[index];
+    }
+
+    void ResponseAction()
+    {
+        if (isDisposable)
+        {
+            mesh.material = meshSet[2];
+            return;
+        }
+        int index = operateState ? 1 : 0;
+        mesh.material = meshSet[index];
     }
 
     public override void Operate()
     {
         operateState = !operateState;
         connectedObjController.OnActivate(operateState ? 1 : -1);
+        ResponseAction();
     }
 
     void OnTriggerEnter(Collider other)
