@@ -11,25 +11,56 @@ public class NetworkInputManager : MonoBehaviour, INetworkRunnerCallbacks
     private PlayerInputHandler cachedLocalHandler;
     private bool warnedMissingLocalHandler;
     private bool loggedFallbackHandler;
+    private NetworkRunner registeredRunner;
 
     private void OnEnable()
     {
-        FindRunnerIfNull();
+        TryRegisterRunnerCallbacks();
+    }
 
-        if (runner != null)
-            runner.AddCallbacks(this);
+    private void Update()
+    {
+        if (registeredRunner == null)
+            TryRegisterRunnerCallbacks();
     }
 
     private void OnDisable()
     {
-        if (runner != null)
-            runner.RemoveCallbacks(this);
+        UnregisterRunnerCallbacks();
     }
 
     private void FindRunnerIfNull()
     {
         if (runner == null)
-            runner = FindAnyObjectByType<NetworkRunner>();
+            runner = FindAnyObjectByType<NetworkRunner>(FindObjectsInactive.Include);
+    }
+
+    private void TryRegisterRunnerCallbacks()
+    {
+        FindRunnerIfNull();
+
+        if (runner == null)
+            return;
+
+        if (registeredRunner == runner)
+            return;
+
+        UnregisterRunnerCallbacks();
+
+        registeredRunner = runner;
+        registeredRunner.RemoveCallbacks(this);
+        registeredRunner.AddCallbacks(this);
+
+        Debug.Log("[NetworkInputManager] Registered runner callbacks: " + registeredRunner.name);
+    }
+
+    private void UnregisterRunnerCallbacks()
+    {
+        if (registeredRunner == null)
+            return;
+
+        registeredRunner.RemoveCallbacks(this);
+        registeredRunner = null;
     }
 
     public void OnInput(NetworkRunner runner, NetworkInput input)

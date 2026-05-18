@@ -11,28 +11,62 @@ public class PlayerSpawner : MonoBehaviour, INetworkRunnerCallbacks
     [SerializeField] private NetworkPrefabRef playerPrefab;
 
     private readonly Dictionary<PlayerRef, NetworkObject> spawnedPlayers = new Dictionary<PlayerRef, NetworkObject>();
+    private NetworkRunner registeredRunner;
 
     private void OnEnable()
     {
-        FindReferences();
+        TryRegisterRunnerCallbacks();
+    }
 
-        if (runner != null)
-            runner.AddCallbacks(this);
+    private void Update()
+    {
+        if (registeredRunner == null)
+            TryRegisterRunnerCallbacks();
     }
 
     private void OnDisable()
     {
-        if (runner != null)
-            runner.RemoveCallbacks(this);
+        UnregisterRunnerCallbacks();
     }
 
     private void FindReferences()
     {
         if (runner == null)
-            runner = FindAnyObjectByType<NetworkRunner>();
+            runner = FindAnyObjectByType<NetworkRunner>(FindObjectsInactive.Include);
 
         if (sceneFlowManager == null)
             sceneFlowManager = FindAnyObjectByType<SceneFlowManager>(FindObjectsInactive.Include);
+    }
+
+    private void TryRegisterRunnerCallbacks()
+    {
+        FindReferences();
+
+        if (runner == null)
+            return;
+
+        if (registeredRunner == runner)
+            return;
+
+        UnregisterRunnerCallbacks();
+
+        registeredRunner = runner;
+        registeredRunner.RemoveCallbacks(this);
+        registeredRunner.AddCallbacks(this);
+
+        Debug.Log("[PlayerSpawner] Registered runner callbacks: " + registeredRunner.name);
+
+        if (IsGameSceneLoaded())
+            SpawnAllPlayers(registeredRunner);
+    }
+
+    private void UnregisterRunnerCallbacks()
+    {
+        if (registeredRunner == null)
+            return;
+
+        registeredRunner.RemoveCallbacks(this);
+        registeredRunner = null;
     }
 
     public void OnPlayerJoined(NetworkRunner runner, PlayerRef player)
@@ -76,6 +110,12 @@ public class PlayerSpawner : MonoBehaviour, INetworkRunnerCallbacks
         return sceneFlowManager != null && sceneFlowManager.IsGameSceneLoaded();
     }
 
+    private void SpawnAllPlayers(NetworkRunner runner)
+    {
+        foreach (PlayerRef player in runner.ActivePlayers)
+            SpawnPlayerIfNeeded(runner, player);
+    }
+
     public void OnInput(NetworkRunner runner, NetworkInput input) { }
     public void OnInputMissing(NetworkRunner runner, PlayerRef player, NetworkInput input) { }
     public void OnShutdown(NetworkRunner runner, ShutdownReason shutdownReason) { }
@@ -95,8 +135,7 @@ public class PlayerSpawner : MonoBehaviour, INetworkRunnerCallbacks
         if (!IsGameSceneLoaded())
             return;
 
-        foreach (PlayerRef player in runner.ActivePlayers)
-            SpawnPlayerIfNeeded(runner, player);
+        SpawnAllPlayers(runner);
     }
 
     public void OnSceneLoadStart(NetworkRunner runner)
