@@ -25,7 +25,7 @@ Transform:
   m_GameObject: {fileID: 2652855984769929480}
   serializedVersion: 2
   m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
-  m_LocalPosition: {x: 1.1726301, y: 0, z: -0.34512997}
+  m_LocalPosition: {x: 0, y: 0, z: -2}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -56,7 +56,7 @@ Transform:
   m_GameObject: {fileID: 3917018818617923804}
   serializedVersion: 2
   m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
-  m_LocalPosition: {x: 1.1726301, y: 0, z: 6.27887}
+  m_LocalPosition: {x: 0, y: 0, z: 2}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -92,7 +92,7 @@ Transform:
   m_GameObject: {fileID: 5276406338265382183}
   serializedVersion: 2
   m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
-  m_LocalPosition: {x: 1.1726301, y: 0, z: 2.57887}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -207,6 +207,9 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: b4e3edf47aacf2f43aeb00a2bb6dc625, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::MoveableStructure
+  firstState: 0
+  isDisposable: 0
+  triggerCnt: 0
   moveTime: 0.5
   posA: {fileID: 8394087920629461265}
   posB: {fileID: 7948593686790581177}
@@ -235,7 +238,7 @@ Transform:
   m_GameObject: {fileID: 7587425722861560967}
   serializedVersion: 2
   m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
-  m_LocalPosition: {x: 1.49737, y: 0, z: -2.57887}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children:

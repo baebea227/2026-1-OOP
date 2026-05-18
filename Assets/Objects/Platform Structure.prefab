@@ -25,7 +25,7 @@ Transform:
   m_GameObject: {fileID: 1352379713352686066}
   serializedVersion: 2
   m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
-  m_LocalPosition: {x: 4.0076303, y: 0, z: 0.06486988}
+  m_LocalPosition: {x: 0, y: 0, z: -2}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -61,7 +61,7 @@ Transform:
   m_GameObject: {fileID: 2449242569260422787}
   serializedVersion: 2
   m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
-  m_LocalPosition: {x: 4.0076303, y: 0, z: 2.69487}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -176,6 +176,9 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 14bec69db8dab35439364776deac40b4, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PlatformStructure
+  firstState: 0
+  isDisposable: 0
+  triggerCnt: 0
   moveTime: 3
   posA: {fileID: 7414594598810276267}
   posB: {fileID: 6236541445393426069}
@@ -204,7 +207,7 @@ Transform:
   m_GameObject: {fileID: 2686710343618279073}
   serializedVersion: 2
   m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
-  m_LocalPosition: {x: 1.49737, y: 0, z: -2.57887}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children:
@@ -238,7 +241,7 @@ Transform:
   m_GameObject: {fileID: 7121871302752706637}
   serializedVersion: 2
   m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
-  m_LocalPosition: {x: 4.0076303, y: 0, z: 5.32487}
+  m_LocalPosition: {x: 0, y: 0, z: 2}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []

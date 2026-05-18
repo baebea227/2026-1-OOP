@@ -23,14 +23,12 @@ public class PlatformStructure : NetworkBehaviour, IActivatable
         curMoveTime = 0;
         transform.position = posA.position;
         direction = true;
-        
-        Debug.Log(IsActive);
     }
     
     public void OnActivate(int n)
     {
         curTriggerCnt += n;
-        if(curTriggerCnt >= triggerCnt)
+        if((triggerCnt != 0 && curTriggerCnt >= triggerCnt) || (triggerCnt == 0 && !IsActive))
         {
             Activate();
             if (isDisposable)
