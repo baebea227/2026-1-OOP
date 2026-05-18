@@ -58,8 +58,7 @@ public class NetworkSessionManager : MonoBehaviour, INetworkRunnerCallbacks
         if (dontDestroyOnLoad)
             DontDestroyOnLoad(gameObject);
 
-        if (sceneFlowManager == null)
-            sceneFlowManager = GetComponent<SceneFlowManager>();
+        ResolveSceneFlowManager();
 
         Debug.Log("[NetworkSessionManager] Awake completed: " + gameObject.name);
     }
@@ -105,6 +104,7 @@ public class NetworkSessionManager : MonoBehaviour, INetworkRunnerCallbacks
         runner.AddCallbacks(this);
 
         Debug.Log("[NetworkSessionManager] NetworkRunner_Runtime created");
+        LogRunnerState("SetupRunner created");
     }
 
     public async void JoinLobby()
@@ -196,12 +196,13 @@ public class NetworkSessionManager : MonoBehaviour, INetworkRunnerCallbacks
         }
 
         SetBusy(true);
+        Debug.Log($"[NetworkSessionManager][Diagnostics:StartSessionBegin] mode={gameMode}, session={sessionName}, lobby={lobbyName}, maxPlayers={maxPlayers}");
 
         try
         {
             SetupRunner();
 
-            if (sceneFlowManager == null)
+            if (!ResolveSceneFlowManager())
             {
                 SetStatus("SceneFlowManager not found");
                 return;
@@ -226,9 +227,11 @@ public class NetworkSessionManager : MonoBehaviour, INetworkRunnerCallbacks
                 IsOpen = true,
                 IsVisible = true,
 
-                Scene = sceneFlowManager.GetWaitingRoomSceneInfo(),
                 SceneManager = sceneManager
             };
+
+            if (gameMode != GameMode.Client)
+                args.Scene = sceneFlowManager.GetWaitingRoomSceneInfo();
 
             // Client가 없는 방을 실수로 새로 만들지 못하게 막음
             if (gameMode == GameMode.Client)
@@ -236,7 +239,13 @@ public class NetworkSessionManager : MonoBehaviour, INetworkRunnerCallbacks
                 args.EnableClientSessionCreation = false;
             }
 
+            Debug.Log($"[NetworkSessionManager][Diagnostics:BeforeStartGame] mode={gameMode}, session={sessionName}, sceneAssigned={gameMode != GameMode.Client}, clientSessionCreation={args.EnableClientSessionCreation}");
+            LogRunnerState("Before StartGame");
+
             var result = await runner.StartGame(args);
+
+            Debug.Log($"[NetworkSessionManager][Diagnostics:StartGameResult] ok={result.Ok}, reason={result.ShutdownReason}, mode={gameMode}, session={sessionName}");
+            LogRunnerState("After StartGame");
 
             if (result.Ok)
             {
@@ -259,6 +268,7 @@ public class NetworkSessionManager : MonoBehaviour, INetworkRunnerCallbacks
         catch (Exception e)
         {
             SetStatus("Session start error: " + e.Message);
+            Debug.LogException(e);
 
             // 예외가 나도 다음 시도 가능하게 Runner 초기화
             await ResetRunnerAsync();
@@ -317,10 +327,64 @@ public class NetworkSessionManager : MonoBehaviour, INetworkRunnerCallbacks
         isBusy = busy;
         OnBusyStateChanged?.Invoke(!busy);
     }
+
+    private bool ResolveSceneFlowManager()
+    {
+        if (sceneFlowManager != null)
+            return true;
+
+        sceneFlowManager = GetComponent<SceneFlowManager>();
+
+        if (sceneFlowManager == null)
+            sceneFlowManager = FindAnyObjectByType<SceneFlowManager>(FindObjectsInactive.Include);
+
+        return sceneFlowManager != null;
+    }
+
+    private void LogRunnerState(string context)
+    {
+        LogRunnerState(context, runner);
+    }
+
+    private void LogRunnerState(string context, NetworkRunner targetRunner)
+    {
+        string activeScene = SceneManager.GetActiveScene().name;
+
+        if (targetRunner == null)
+        {
+            Debug.Log($"[NetworkSessionManager][Diagnostics:{context}] runner=null, activeScene={activeScene}");
+            return;
+        }
+
+        string sessionName = targetRunner.SessionInfo != null ? targetRunner.SessionInfo.Name : "null";
+
+        Debug.Log(
+            $"[NetworkSessionManager][Diagnostics:{context}] " +
+            $"runner={targetRunner.name}, running={targetRunner.IsRunning}, server={targetRunner.IsServer}, client={targetRunner.IsClient}, " +
+            $"sceneAuthority={targetRunner.IsSceneAuthority}, localPlayer={targetRunner.LocalPlayer}, session={sessionName}, " +
+            $"activePlayers={CountActivePlayers(targetRunner)}, activeScene={activeScene}"
+        );
+    }
+
+    private int CountActivePlayers(NetworkRunner targetRunner)
+    {
+        if (targetRunner == null)
+            return 0;
+
+        int count = 0;
+
+        foreach (PlayerRef player in targetRunner.ActivePlayers)
+            count++;
+
+        return count;
+    }
+
     private async Task ResetRunnerAsync()
     {
         NetworkRunner oldRunner = runner;
         GameObject oldRunnerObject = runnerObject;
+
+        LogRunnerState("ResetRunner begin", oldRunner);
 
         runner = null;
         sceneManager = null;
@@ -405,22 +469,35 @@ public class NetworkSessionManager : MonoBehaviour, INetworkRunnerCallbacks
 
         SetStatus($"Session list updated: {cachedSessions.Count}");
 
+        foreach (SessionInfo session in cachedSessions)
+        {
+            Debug.Log(
+                $"[NetworkSessionManager][Diagnostics:SessionListItem] " +
+                $"name={session.Name}, players={session.PlayerCount}/{session.MaxPlayers}, open={session.IsOpen}, visible={session.IsVisible}, valid={session.IsValid}"
+            );
+        }
+
         OnSessionListChanged?.Invoke(cachedSessions);
     }
 
     public void OnConnectedToServer(NetworkRunner runner)
     {
         SetStatus("Connected to server");
+        LogRunnerState("OnConnectedToServer", runner);
     }
 
     public void OnConnectFailed(NetworkRunner runner, NetAddress remoteAddress, NetConnectFailedReason reason)
     {
         SetStatus("Failed to connect to server: " + reason);
+        Debug.Log($"[NetworkSessionManager][Diagnostics:OnConnectFailed] remote={remoteAddress}, reason={reason}");
+        LogRunnerState("OnConnectFailed", runner);
     }
 
     public void OnDisconnectedFromServer(NetworkRunner runner, NetDisconnectReason reason)
     {
         SetStatus("Disconnected from server: " + reason);
+        Debug.Log($"[NetworkSessionManager][Diagnostics:OnDisconnectedFromServer] reason={reason}");
+        LogRunnerState("OnDisconnectedFromServer", runner);
     }
 
     public void OnPlayerJoined(NetworkRunner runner, PlayerRef player)
@@ -428,6 +505,7 @@ public class NetworkSessionManager : MonoBehaviour, INetworkRunnerCallbacks
         int currentCount = GetCurrentPlayerCount();
 
         SetStatus($"Player joined: {player} / Current players: {currentCount}/{maxPlayers}");
+        LogRunnerState($"OnPlayerJoined player={player}", runner);
 
         OnPlayerJoinedEvent?.Invoke(player);
     }
@@ -437,6 +515,7 @@ public class NetworkSessionManager : MonoBehaviour, INetworkRunnerCallbacks
         int currentCount = GetCurrentPlayerCount();
 
         SetStatus($"Player left: {player} / Current players: {currentCount}/{maxPlayers}");
+        LogRunnerState($"OnPlayerLeft player={player}", runner);
 
         OnPlayerLeftEvent?.Invoke(player);
     }
@@ -444,6 +523,8 @@ public class NetworkSessionManager : MonoBehaviour, INetworkRunnerCallbacks
     public void OnShutdown(NetworkRunner shutdownRunner, ShutdownReason shutdownReason)
     {
         SetStatus("Runner shutdown: " + shutdownReason);
+        Debug.Log($"[NetworkSessionManager][Diagnostics:OnShutdown] reason={shutdownReason}");
+        LogRunnerState("OnShutdown", shutdownRunner);
 
         if (runner != null && runner == shutdownRunner)
             runner.ProvideInput = false;
@@ -499,10 +580,12 @@ public class NetworkSessionManager : MonoBehaviour, INetworkRunnerCallbacks
     public void OnSceneLoadStart(NetworkRunner runner)
     {
         SetStatus("Scene loading started");
+        LogRunnerState("OnSceneLoadStart", runner);
     }
 
     public void OnSceneLoadDone(NetworkRunner runner)
     {
         SetStatus("Scene loading completed");
+        LogRunnerState("OnSceneLoadDone", runner);
     }
 }

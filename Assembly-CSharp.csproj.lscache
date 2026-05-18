@@ -82,6 +82,7 @@ Assets/
   StructureSet.cs
  Server/Script/
   LobbyManager.cs
+  NetworkGameState.cs
   NetworkSessionManager.cs
   RoomPlayerState.cs
   SceneFlowManager.cs

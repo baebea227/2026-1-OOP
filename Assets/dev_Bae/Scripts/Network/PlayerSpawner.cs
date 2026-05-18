@@ -3,19 +3,18 @@ using System.Collections.Generic;
 using Fusion;
 using Fusion.Sockets;
 using UnityEngine;
-using UnityEngine.SceneManagement;
 
 public class PlayerSpawner : MonoBehaviour, INetworkRunnerCallbacks
 {
     [SerializeField] private NetworkRunner runner;
+    [SerializeField] private SceneFlowManager sceneFlowManager;
     [SerializeField] private NetworkPrefabRef playerPrefab;
-    [SerializeField] private int gameSceneBuildIndex = 2;
 
     private readonly Dictionary<PlayerRef, NetworkObject> spawnedPlayers = new Dictionary<PlayerRef, NetworkObject>();
 
     private void OnEnable()
     {
-        FindRunnerIfNull();
+        FindReferences();
 
         if (runner != null)
             runner.AddCallbacks(this);
@@ -27,10 +26,13 @@ public class PlayerSpawner : MonoBehaviour, INetworkRunnerCallbacks
             runner.RemoveCallbacks(this);
     }
 
-    private void FindRunnerIfNull()
+    private void FindReferences()
     {
         if (runner == null)
             runner = FindAnyObjectByType<NetworkRunner>();
+
+        if (sceneFlowManager == null)
+            sceneFlowManager = FindAnyObjectByType<SceneFlowManager>(FindObjectsInactive.Include);
     }
 
     public void OnPlayerJoined(NetworkRunner runner, PlayerRef player)
@@ -69,13 +71,9 @@ public class PlayerSpawner : MonoBehaviour, INetworkRunnerCallbacks
 
     private bool IsGameSceneLoaded()
     {
-        for (int i = 0; i < SceneManager.sceneCount; i++)
-        {
-            if (SceneManager.GetSceneAt(i).buildIndex == gameSceneBuildIndex)
-                return true;
-        }
+        FindReferences();
 
-        return false;
+        return sceneFlowManager != null && sceneFlowManager.IsGameSceneLoaded();
     }
 
     public void OnInput(NetworkRunner runner, NetworkInput input) { }
