@@ -146,4 +146,5 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::ActivatableStructure
   firstState: 0
+  isDisposable: 0
   triggerCnt: 0
