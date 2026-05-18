@@ -231,21 +231,23 @@ public class WaitingRoomManager : MonoBehaviour, INetworkRunnerCallbacks
         return gameState;
     }
 
-    private void SpawnNetworkGameStateIfHost()
+    private NetworkGameState SpawnNetworkGameStateIfHost()
     {
         if (runner == null)
-            return;
+            return FindNetworkGameState();
 
         if (!runner.IsServer)
-            return;
+            return FindNetworkGameState();
 
-        if (FindNetworkGameState() != null)
-            return;
+        NetworkGameState existingState = FindNetworkGameState();
+
+        if (existingState != null)
+            return existingState;
 
         if (networkGameStatePrefab == null)
         {
             SetStatus("NetworkGameStatePrefab is not assigned");
-            return;
+            return null;
         }
 
         NetworkObject obj = runner.Spawn(
@@ -254,17 +256,24 @@ public class WaitingRoomManager : MonoBehaviour, INetworkRunnerCallbacks
             Quaternion.identity
         );
 
+        if (obj == null)
+        {
+            SetStatus("NetworkGameState spawn failed");
+            return null;
+        }
+
         gameState = obj.GetComponent<NetworkGameState>();
 
         if (gameState == null)
         {
             SetStatus("NetworkGameState component is missing on prefab");
-            return;
+            return null;
         }
 
         gameState.SetWaiting();
 
         SetStatus("NetworkGameState created");
+        return gameState;
     }
 
     /// <summary>
@@ -296,17 +305,13 @@ public class WaitingRoomManager : MonoBehaviour, INetworkRunnerCallbacks
     /// </summary>
     private void OnClickStartGame()
     {
-        NetworkGameState state = FindNetworkGameState();
+        FindReferences();
 
-        if (state == null)
+        if (runner == null)
         {
-            SetStatus("NetworkGameState not found");
+            SetStatus("NetworkRunner not found");
             return;
         }
-
-        state.SetPlaying();
-        if (runner == null)
-            return;
 
         // 씬 전환은 Host/SceneAuthority만 가능
         if (!runner.IsSceneAuthority)
@@ -320,6 +325,16 @@ public class WaitingRoomManager : MonoBehaviour, INetworkRunnerCallbacks
             SetStatus("Cannot start the game yet");
             return;
         }
+
+        NetworkGameState state = SpawnNetworkGameStateIfHost();
+
+        if (state == null)
+        {
+            SetStatus("NetworkGameState not found");
+            return;
+        }
+
+        state.SetPlaying();
 
         SetStatus("Starting game");
 
@@ -650,7 +665,10 @@ public class WaitingRoomManager : MonoBehaviour, INetworkRunnerCallbacks
         LogRoomState($"OnPlayerJoined player={player}", runner);
 
         if (runner.IsServer)
+        {
             SpawnRoomPlayerStateIfNeeded(player);
+            SpawnNetworkGameStateIfHost();
+        }
 
         UpdateAllUI();
     }

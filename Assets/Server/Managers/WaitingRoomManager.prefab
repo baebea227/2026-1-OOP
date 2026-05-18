@@ -48,6 +48,7 @@ MonoBehaviour:
   sceneFlowManager: {fileID: 0}
   runner: {fileID: 0}
   roomPlayerStatePrefab: {fileID: 0}
+  networkGameStatePrefab: {fileID: 9073499917565316542, guid: 99fc91a698601c74785aeb0db64e7dc5, type: 3}
   roomNameText: {fileID: 0}
   playerCountText: {fileID: 0}
   player1Text: {fileID: 0}
