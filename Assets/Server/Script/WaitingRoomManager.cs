@@ -4,6 +4,7 @@ using Fusion;
 using Fusion.Sockets;
 using TMPro;
 using UnityEngine;
+using UnityEngine.SceneManagement;
 using UnityEngine.UI;
 
 /// <summary>
@@ -32,6 +33,8 @@ public class WaitingRoomManager : MonoBehaviour, INetworkRunnerCallbacks
     // 플레이어마다 Ready 상태를 저장할 네트워크 프리팹
     // 이 프리팹에는 NetworkObject + RoomPlayerState가 붙어 있어야 함
     [SerializeField] private NetworkObject roomPlayerStatePrefab;
+    [SerializeField] private NetworkObject networkGameStatePrefab;
+    private NetworkGameState gameState;
 
     [Header("UI")]
     [SerializeField] private TMP_Text roomNameText;
@@ -111,11 +114,13 @@ public class WaitingRoomManager : MonoBehaviour, INetworkRunnerCallbacks
 
         // Host라면 현재 세션에 들어와 있는 플레이어들의 Ready 상태 오브젝트를 생성
         SpawnRoomPlayerStatesIfHost();
+        SpawnNetworkGameStateIfHost();
 
         // 처음 대기방에 들어왔을 때 UI 갱신
         UpdateAllUI();
 
         SetStatus("Entered waiting room");
+        LogRoomState("Start");
     }
 
     private void Update()
@@ -132,10 +137,10 @@ public class WaitingRoomManager : MonoBehaviour, INetworkRunnerCallbacks
     private void FindReferences()
     {
         if (networkSessionManager == null)
-            networkSessionManager = FindAnyObjectByType<NetworkSessionManager>();
+            networkSessionManager = FindAnyObjectByType<NetworkSessionManager>(FindObjectsInactive.Include);
 
         if (sceneFlowManager == null)
-            sceneFlowManager = FindAnyObjectByType<SceneFlowManager>();
+            sceneFlowManager = FindAnyObjectByType<SceneFlowManager>(FindObjectsInactive.Include);
 
         if (runner == null)
         {
@@ -216,6 +221,51 @@ public class WaitingRoomManager : MonoBehaviour, INetworkRunnerCallbacks
 
         SetStatus($"Player state created: {player}");
     }
+    
+    private NetworkGameState FindNetworkGameState()
+    {
+        if (gameState != null)
+            return gameState;
+
+        gameState = FindAnyObjectByType<NetworkGameState>(FindObjectsInactive.Include);
+        return gameState;
+    }
+
+    private void SpawnNetworkGameStateIfHost()
+    {
+        if (runner == null)
+            return;
+
+        if (!runner.IsServer)
+            return;
+
+        if (FindNetworkGameState() != null)
+            return;
+
+        if (networkGameStatePrefab == null)
+        {
+            SetStatus("NetworkGameStatePrefab is not assigned");
+            return;
+        }
+
+        NetworkObject obj = runner.Spawn(
+            networkGameStatePrefab,
+            Vector3.zero,
+            Quaternion.identity
+        );
+
+        gameState = obj.GetComponent<NetworkGameState>();
+
+        if (gameState == null)
+        {
+            SetStatus("NetworkGameState component is missing on prefab");
+            return;
+        }
+
+        gameState.SetWaiting();
+
+        SetStatus("NetworkGameState created");
+    }
 
     /// <summary>
     /// Ready 버튼 클릭 시 실행
@@ -246,6 +296,15 @@ public class WaitingRoomManager : MonoBehaviour, INetworkRunnerCallbacks
     /// </summary>
     private void OnClickStartGame()
     {
+        NetworkGameState state = FindNetworkGameState();
+
+        if (state == null)
+        {
+            SetStatus("NetworkGameState not found");
+            return;
+        }
+
+        state.SetPlaying();
         if (runner == null)
             return;
 
@@ -345,6 +404,9 @@ public class WaitingRoomManager : MonoBehaviour, INetworkRunnerCallbacks
 
         foreach (RoomPlayerState state in states)
         {
+            if (state.Object == null)
+                continue;
+
             if (state.Player == player)
                 return state;
         }
@@ -366,6 +428,9 @@ public class WaitingRoomManager : MonoBehaviour, INetworkRunnerCallbacks
 
         foreach (RoomPlayerState state in states)
         {
+            if (state.Object == null)
+                continue;
+
             if (state.Player != PlayerRef.None)
                 result.Add(state);
         }
@@ -454,7 +519,7 @@ public class WaitingRoomManager : MonoBehaviour, INetworkRunnerCallbacks
 
             string hostText = state.IsHostPlayer ? "Host" : "Client";
             string readyText = state.IsReady ? "Ready" : "Not Ready";
-            string myText = state.Object.HasInputAuthority ? " / Me" : "";
+            string myText = state.Object != null && state.Object.HasInputAuthority ? " / Me" : "";
 
             string line = $"Player {i + 1}: {hostText} / {readyText}{myText}";
 
@@ -533,6 +598,42 @@ public class WaitingRoomManager : MonoBehaviour, INetworkRunnerCallbacks
             statusText.text = message;
     }
 
+    private void LogRoomState(string context)
+    {
+        LogRoomState(context, runner);
+    }
+
+    private void LogRoomState(string context, NetworkRunner sourceRunner)
+    {
+        NetworkRunner activeRunner = sourceRunner != null ? sourceRunner : runner;
+        string activeScene = SceneManager.GetActiveScene().name;
+        int roomStateCount = FindObjectsByType<RoomPlayerState>(FindObjectsSortMode.None).Length;
+        int activePlayerCount = CountActivePlayers(activeRunner);
+        string sessionName = activeRunner != null && activeRunner.SessionInfo != null ? activeRunner.SessionInfo.Name : "null";
+
+        Debug.Log(
+            $"[WaitingRoomManager][Diagnostics:{context}] " +
+            $"runner={(activeRunner != null ? activeRunner.name : "null")}, running={(activeRunner != null && activeRunner.IsRunning)}, " +
+            $"server={(activeRunner != null && activeRunner.IsServer)}, sceneAuthority={(activeRunner != null && activeRunner.IsSceneAuthority)}, " +
+            $"localPlayer={(activeRunner != null ? activeRunner.LocalPlayer.ToString() : "null")}, session={sessionName}, " +
+            $"activePlayers={activePlayerCount}, roomStates={roomStateCount}, hasMyState={myPlayerState != null}, " +
+            $"hasGameState={FindNetworkGameState() != null}, activeScene={activeScene}"
+        );
+    }
+
+    private int CountActivePlayers(NetworkRunner sourceRunner)
+    {
+        if (sourceRunner == null)
+            return 0;
+
+        int count = 0;
+
+        foreach (PlayerRef player in sourceRunner.ActivePlayers)
+            count++;
+
+        return count;
+    }
+
     // ==============================
     // Fusion Callbacks
     // ==============================
@@ -543,7 +644,10 @@ public class WaitingRoomManager : MonoBehaviour, INetworkRunnerCallbacks
     /// </summary>
     public void OnPlayerJoined(NetworkRunner runner, PlayerRef player)
     {
+        this.runner = runner;
+
         SetStatus($"Player joined: {player}");
+        LogRoomState($"OnPlayerJoined player={player}", runner);
 
         if (runner.IsServer)
             SpawnRoomPlayerStateIfNeeded(player);
@@ -557,7 +661,10 @@ public class WaitingRoomManager : MonoBehaviour, INetworkRunnerCallbacks
     /// </summary>
     public void OnPlayerLeft(NetworkRunner runner, PlayerRef player)
     {
+        this.runner = runner;
+
         SetStatus($"Player left: {player}");
+        LogRoomState($"OnPlayerLeft player={player}", runner);
         UpdateAllUI();
     }
 
@@ -567,11 +674,21 @@ public class WaitingRoomManager : MonoBehaviour, INetworkRunnerCallbacks
     /// </summary>
     public void OnSceneLoadDone(NetworkRunner runner)
     {
+        this.runner = runner;
+        LogRoomState("OnSceneLoadDone before sync", runner);
+
         SpawnRoomPlayerStatesIfHost();
+        SpawnNetworkGameStateIfHost();
+        FindNetworkGameState();
         UpdateAllUI();
+        LogRoomState("OnSceneLoadDone after sync", runner);
     }
 
-    public void OnSceneLoadStart(NetworkRunner runner) { }
+    public void OnSceneLoadStart(NetworkRunner runner)
+    {
+        this.runner = runner;
+        LogRoomState("OnSceneLoadStart", runner);
+    }
 
     // 입력 처리는 친구가 만든 NetworkInputManager가 담당하므로 여기서는 사용하지 않음
     public void OnInput(NetworkRunner runner, NetworkInput input) { }
@@ -585,13 +702,18 @@ public class WaitingRoomManager : MonoBehaviour, INetworkRunnerCallbacks
     public void OnShutdown(NetworkRunner runner, ShutdownReason shutdownReason)
     {
         SetStatus("Session ended: " + shutdownReason);
+        LogRoomState($"OnShutdown reason={shutdownReason}", runner);
     }
 
-    public void OnConnectedToServer(NetworkRunner runner) { }
+    public void OnConnectedToServer(NetworkRunner runner)
+    {
+        LogRoomState("OnConnectedToServer", runner);
+    }
 
     public void OnDisconnectedFromServer(NetworkRunner runner, NetDisconnectReason reason)
     {
         SetStatus("Disconnected from server: " + reason);
+        LogRoomState($"OnDisconnectedFromServer reason={reason}", runner);
     }
 
     public void OnConnectRequest(NetworkRunner runner, NetworkRunnerCallbackArgs.ConnectRequest request, byte[] token)
@@ -602,6 +724,8 @@ public class WaitingRoomManager : MonoBehaviour, INetworkRunnerCallbacks
     public void OnConnectFailed(NetworkRunner runner, NetAddress remoteAddress, NetConnectFailedReason reason)
     {
         SetStatus("Failed to connect to server: " + reason);
+        Debug.Log($"[WaitingRoomManager][Diagnostics:OnConnectFailed] remote={remoteAddress}, reason={reason}");
+        LogRoomState("OnConnectFailed", runner);
     }
 
     public void OnUserSimulationMessage(NetworkRunner runner, SimulationMessagePtr message) { }
