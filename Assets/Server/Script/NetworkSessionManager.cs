@@ -11,6 +11,7 @@ public class NetworkSessionManager : MonoBehaviour, INetworkRunnerCallbacks
 {
     [Header("Fusion")]
     public static NetworkSessionManager Instance { get; private set; }
+    [SerializeField] private NetworkRunner runnerPrefab;
     private NetworkRunner runner;
     private NetworkSceneManagerDefault sceneManager;
     private GameObject runnerObject;
@@ -74,7 +75,7 @@ public class NetworkSessionManager : MonoBehaviour, INetworkRunnerCallbacks
             Instance = null;
     }
 
-        private void SetupRunner()
+    private void SetupRunner()
     {
         if (runner != null)
             return;
@@ -86,17 +87,22 @@ public class NetworkSessionManager : MonoBehaviour, INetworkRunnerCallbacks
             Destroy(oldRuntime);
         }
 
-        runnerObject = new GameObject("NetworkRunner_Runtime");
+        runnerObject = CreateRunnerObject();
 
         // NetworkCore의 자식으로 두지 않는다.
         // 따로 DontDestroyOnLoad 루트 오브젝트로 둔다.
         DontDestroyOnLoad(runnerObject);
 
-        runner = runnerObject.AddComponent<NetworkRunner>();
-        sceneManager = runnerObject.AddComponent<NetworkSceneManagerDefault>();
+        runner = runnerObject.GetComponent<NetworkRunner>();
+        if (runner == null)
+            runner = runnerObject.AddComponent<NetworkRunner>();
+
+        sceneManager = runnerObject.GetComponent<NetworkSceneManagerDefault>();
+        if (sceneManager == null)
+            sceneManager = runnerObject.AddComponent<NetworkSceneManagerDefault>();
 
         // 게임 씬 물리 동기화용
-        runnerObject.AddComponent<RunnerSimulatePhysics3D>();
+        EnsurePhysicsSimulator(runnerObject);
 
         runner.ProvideInput = false;
 
@@ -105,6 +111,42 @@ public class NetworkSessionManager : MonoBehaviour, INetworkRunnerCallbacks
 
         Debug.Log("[NetworkSessionManager] NetworkRunner_Runtime created");
         LogRunnerState("SetupRunner created");
+    }
+
+    private GameObject CreateRunnerObject()
+    {
+        GameObject createdObject;
+
+        if (runnerPrefab != null)
+        {
+            createdObject = Instantiate(runnerPrefab.gameObject);
+            Debug.Log("[NetworkSessionManager] NetworkRunner_Runtime instantiated from prefab: " + runnerPrefab.name);
+        }
+        else
+        {
+            createdObject = new GameObject("NetworkRunner_Runtime");
+            Debug.LogWarning("[NetworkSessionManager] runnerPrefab is not assigned. Creating NetworkRunner_Runtime from code.");
+        }
+
+        createdObject.name = "NetworkRunner_Runtime";
+        return createdObject;
+    }
+
+    private void EnsurePhysicsSimulator(GameObject targetObject)
+    {
+        RunnerSimulatePhysics3D physicsSimulator = targetObject.GetComponent<RunnerSimulatePhysics3D>();
+
+        if (physicsSimulator == null)
+        {
+            physicsSimulator = targetObject.AddComponent<RunnerSimulatePhysics3D>();
+            physicsSimulator.ClientPhysicsSimulation = ClientPhysicsSimulation.SimulateForward;
+            Debug.LogWarning("[NetworkSessionManager] RunnerSimulatePhysics3D missing on runner prefab. Added with SimulateForward.");
+        }
+
+        if (physicsSimulator.ClientPhysicsSimulation == ClientPhysicsSimulation.Disabled)
+        {
+            Debug.LogWarning("[NetworkSessionManager] RunnerSimulatePhysics3D ClientPhysicsSimulation is Disabled. Client-side physics interactions may not raycast or predict correctly.");
+        }
     }
 
     public async void JoinLobby()

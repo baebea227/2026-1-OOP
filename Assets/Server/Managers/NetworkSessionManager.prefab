@@ -44,9 +44,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: f784b25ad5ad36e47992f1bb782312e3, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::NetworkSessionManager
-  runner: {fileID: 0}
-  sceneManager: {fileID: 0}
+  runnerPrefab: {fileID: 8111994678428417639, guid: 4c14c4ac495fa1844939319c2aa2613f, type: 3}
   lobbyName: MainLobby
   maxPlayers: 2
-  waitingRoomSceneBuildIndex: 1
+  sceneFlowManager: {fileID: 0}
   dontDestroyOnLoad: 1
