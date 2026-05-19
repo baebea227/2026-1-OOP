@@ -38,9 +38,6 @@ public class Stage : NetworkBehaviour
         if(cnt == 2)
         {
             IsCleared = true;
-
-            // test
-            Debug.Log("Stage Clear");
         }
     }
 
