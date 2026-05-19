@@ -5,6 +5,8 @@ using Fusion;
 [RequireComponent(typeof(PlayerInput))]
 public class PlayerInputHandler : NetworkBehaviour
 {
+    internal static bool IsGameplayInputBlocked { get; set; }
+
     private PlayerInput playerInput;
     private InputAction moveAction;
     private InputAction lookAction;
@@ -79,6 +81,12 @@ public class PlayerInputHandler : NetworkBehaviour
         if (!HasInputAuthority)
             return;
 
+        if (IsGameplayInputBlocked)
+        {
+            ClearBufferedButtonInputs();
+            return;
+        }
+
         if (jumpAction.WasPressedThisFrame())
             localJumpPressed = true;
 
@@ -99,6 +107,24 @@ public class PlayerInputHandler : NetworkBehaviour
 
     public void OnInput(NetworkRunner runner, NetworkInput input)
     {
+        if (IsGameplayInputBlocked)
+        {
+            input.Set(new PlayerNetworkInput
+            {
+                moveInput = Vector2.zero,
+                yaw = localYaw,
+                pitch = localPitch,
+                isSprinting = false,
+                isJumping = false,
+                isGrab = false,
+                isInteract = false,
+                isThrow = false
+            });
+
+            ClearBufferedButtonInputs();
+            return;
+        }
+
         PlayerNetworkInput data = new PlayerNetworkInput
         {
             moveInput = moveAction.ReadValue<Vector2>(),
@@ -113,6 +139,14 @@ public class PlayerInputHandler : NetworkBehaviour
 
         input.Set(data);
 
+        localJumpPressed = false;
+        localGrabPressed = false;
+        localInteractPressed = false;
+        localThrowPressed = false;
+    }
+
+    private void ClearBufferedButtonInputs()
+    {
         localJumpPressed = false;
         localGrabPressed = false;
         localInteractPressed = false;
