@@ -54,6 +54,7 @@ public class WaitingRoomManager : MonoBehaviour, INetworkRunnerCallbacks
     [Header("Setting")]
     // 2인 전용 게임이므로 최대 인원은 2명
     [SerializeField] private int maxPlayers = 2;
+    private const float CopyButtonGap = 8f;
 
     // 현재 로컬 플레이어의 RoomPlayerState
     // 즉, 내가 Ready 버튼을 눌렀을 때 바꿀 대상
@@ -506,6 +507,8 @@ public class WaitingRoomManager : MonoBehaviour, INetworkRunnerCallbacks
                 roomNameText.text = "Room Code: " + runner.SessionInfo.Name;
             else
                 roomNameText.text = "Room Code: Unknown";
+
+            UpdateRoomCodeCopyButtonLayout();
         }
 
         if (playerCountText != null)
@@ -518,25 +521,66 @@ public class WaitingRoomManager : MonoBehaviour, INetworkRunnerCallbacks
     /// <summary>
     /// Player 1, Player 2의 Ready 상태 UI 갱신
     /// </summary>
+    private void UpdateRoomCodeCopyButtonLayout()
+    {
+        if (roomNameText == null || CopyButton == null)
+            return;
+
+        RectTransform textRect = roomNameText.rectTransform;
+        RectTransform buttonRect = CopyButton.GetComponent<RectTransform>();
+
+        if (textRect == null || buttonRect == null)
+            return;
+
+        Vector4 margin = roomNameText.margin;
+        margin.z = 0f;
+        roomNameText.margin = margin;
+
+        Canvas.ForceUpdateCanvases();
+        roomNameText.ForceMeshUpdate();
+
+        float containerWidth = textRect.rect.width;
+        float buttonWidth = buttonRect.rect.width > 1f ? buttonRect.rect.width : 110f;
+        float buttonHeight = buttonRect.rect.height > 1f ? buttonRect.rect.height : 40f;
+
+        if (containerWidth <= 0f)
+            return;
+
+        float maxTextWidth = Mathf.Max(0f, containerWidth - buttonWidth - CopyButtonGap);
+        float textWidth = Mathf.Min(
+            Mathf.Ceil(roomNameText.GetPreferredValues(roomNameText.text).x),
+            maxTextWidth);
+
+        buttonRect.anchorMin = new Vector2(0f, 0.5f);
+        buttonRect.anchorMax = new Vector2(0f, 0.5f);
+        buttonRect.pivot = new Vector2(0f, 0.5f);
+        buttonRect.sizeDelta = new Vector2(buttonWidth, buttonHeight);
+        buttonRect.anchoredPosition = new Vector2(textWidth + CopyButtonGap, 0f);
+
+        margin.z = containerWidth - textWidth;
+        roomNameText.margin = margin;
+    }
+
     private void UpdatePlayerListUI()
     {
         List<RoomPlayerState> states = GetRoomPlayerStates();
 
         if (player1Text != null)
-            player1Text.text = "Player 1: Empty";
+            player1Text.text = "Player 1 - Not Ready";
 
         if (player2Text != null)
-            player2Text.text = "Player 2: Empty";
+            player2Text.text = "Player 2 - Not Ready";
 
         for (int i = 0; i < states.Count; i++)
         {
             RoomPlayerState state = states[i];
 
-            string hostText = state.IsHostPlayer ? "Host" : "Client";
+            string playerText = $"Player {i + 1}";
+            string roleText = state.IsHostPlayer ? "Host" : "Client";
             string readyText = state.IsReady ? "Ready" : "Not Ready";
-            string myText = state.Object != null && state.Object.HasInputAuthority ? " / Me" : "";
+            string localText = state.Object != null && state.Object.HasInputAuthority ? " (You)" : "";
 
-            string line = $"Player {i + 1}: {hostText} / {readyText}{myText}";
+            string line = $"{playerText} - {roleText} - {readyText}{localText}";
 
             if (i == 0 && player1Text != null)
                 player1Text.text = line;
