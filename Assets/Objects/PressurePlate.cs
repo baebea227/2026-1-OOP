@@ -10,7 +10,7 @@ public class PressurePlate : OperatableObject
     protected override void Awake()
     {
         base.Awake();
-        mesh = GetComponentInChildren<MeshRenderer>();
+        mesh = GetComponent<MeshRenderer>();
 
         init();
     }

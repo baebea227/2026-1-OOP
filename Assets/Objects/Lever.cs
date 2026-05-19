@@ -1,7 +1,6 @@
 using System.Collections;
 using UnityEngine;
 using Fusion;
-using System;
 
 public class Lever : OperatableObject
 {
@@ -13,7 +12,7 @@ public class Lever : OperatableObject
     protected override void Awake()
     {
         base.Awake();
-        mesh = GetComponentInChildren<MeshRenderer>();
+        mesh = GetComponent<MeshRenderer>();
 
         init();
     }
@@ -49,23 +48,6 @@ public class Lever : OperatableObject
         mesh.material = meshSet[index];
     }
 
-    public override void Operate()
-    {
-        operateState = !operateState;
-        connectedObjController.OnActivate(operateState ? 1 : -1);
-        ResponseAction();
-    }
-
-    void OnTriggerEnter(Collider other)
-    {
-        // 임시 조건
-        if (other.CompareTag("Player") && isOperatable)
-        {
-            Operate();
-            StartCoroutine(OperateCooldown());
-        }
-    }
-
     public void TryOperate(NetworkObject operatorObject)
     {
         if (Object.HasStateAuthority)
@@ -99,5 +81,22 @@ public class Lever : OperatableObject
     private void RPC_Operate(NetworkObject operatorObject)
     {
         ApplyOperate(operatorObject);
+    }
+
+    public override void Operate()
+    {
+        operateState = !operateState;
+        connectedObjController.OnActivate(operateState ? 1 : -1);
+        ResponseAction();
+    }
+
+    void OnTriggerEnter(Collider other)
+    {
+        // 임시 조건
+        if (other.CompareTag("Player") && isOperatable)
+        {
+            Operate();
+            StartCoroutine(OperateCooldown());
+        }
     }
 }
