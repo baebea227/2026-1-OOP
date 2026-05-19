@@ -66,7 +66,7 @@ public class NetworkSessionManager : MonoBehaviour, INetworkRunnerCallbacks
     
     private void OnDestroy()
     {
-        Debug.LogWarning("[NetworkSessionManager] OnDestroy called: " + gameObject.name);
+        Debug.Log("[NetworkSessionManager] OnDestroy called: " + gameObject.name);
 
         if (runner != null)
             runner.RemoveCallbacks(this);
