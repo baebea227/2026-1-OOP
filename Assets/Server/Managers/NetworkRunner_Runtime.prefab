@@ -12,6 +12,7 @@ GameObject:
   - component: {fileID: 8111994678428417639}
   - component: {fileID: 4248954755380986726}
   - component: {fileID: 6993641646458836166}
+  - component: {fileID: 5657325774510142021}
   m_Layer: 0
   m_Name: NetworkRunner_Runtime
   m_TagString: Untagged
@@ -78,3 +79,17 @@ MonoBehaviour:
   ClientPhysicsSimulation: 2
   DeltaTimeMultiplier: 1
   SetUnityFixedTimestep: 0
+--- !u!114 &5657325774510142021
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8835784104018671070}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 6f41315e10b7a94438419695e6c6b329, type: 3}
+  m_Name:
+  m_EditorClassIdentifier: Assembly-CSharp::NetworkChatService
+  maxMessageLength: 160
+  maxSenderNameLength: 24
