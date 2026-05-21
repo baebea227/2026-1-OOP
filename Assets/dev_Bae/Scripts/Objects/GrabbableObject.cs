@@ -11,25 +11,34 @@ public class GrabbableObject : InteractableObject, IPickupable, IPushable
     [SerializeField] private float releasePadding = 0.05f;
     [SerializeField] private float[] releaseCandidateDistances = { 0f, 0.5f, 1f, 1.5f };
 
+    [Header("Player Collision Safety")]
+    [SerializeField] private LayerMask playerBlockMask = CollisionPolicyBootstrap.PlayerBodyMask;
+    [SerializeField] private float playerBlockPadding = 0.02f;
+
     [Networked] private NetworkObject HolderObject { get; set; }
 
     private float lastPushTime = -1f;
     private const float pushCooldown = 0.1f;
     private const float minExtent = 0.01f;
+    private const float minVelocitySqr = 0.0001f;
     private Collider[] objectColliders;
     private bool[] defaultColliderEnabled;
     private bool defaultUseGravity;
     private bool defaultDetectCollisions;
     private bool physicsDisabledForHold;
     private readonly Collider[] releaseOverlapResults = new Collider[16];
+    private readonly Collider[] playerOverlapResults = new Collider[16];
 
     protected override void Awake()
     {
         base.Awake();
-        CollisionPolicyBootstrap.ApplyLayerToColliderOwners(gameObject, CollisionPolicyBootstrap.InteractableNoBodyLayer);
+        ApplyCollisionLayer(isHeld: false);
 
         if (releaseBlockMask.value == 0)
             releaseBlockMask = CollisionPolicyBootstrap.PlayerBodyMask;
+
+        if (playerBlockMask.value == 0)
+            playerBlockMask = CollisionPolicyBootstrap.PlayerBodyMask;
 
         objectColliders = GetComponentsInChildren<Collider>();
         defaultColliderEnabled = new bool[objectColliders.Length];
@@ -134,6 +143,7 @@ public class GrabbableObject : InteractableObject, IPickupable, IPushable
         rb.WakeUp();
         rb.linearVelocity = velocity;
         rb.angularVelocity = Vector3.zero;
+        ClampPlayerDirectedVelocity();
     }
 
     private void ApplyDrop(NetworkObject dropper)
@@ -162,6 +172,7 @@ public class GrabbableObject : InteractableObject, IPickupable, IPushable
 
         rb.WakeUp();
         rb.AddForce(force, ForceMode.Impulse);
+        ClampPlayerDirectedVelocity();
     }
 
     private bool CanPush()
@@ -237,7 +248,7 @@ public class GrabbableObject : InteractableObject, IPickupable, IPushable
             if (objectCollider == null || !WasColliderEnabledByDefault(i))
                 continue;
 
-            if (!TryGetReleaseOverlapBox(objectCollider, candidatePosition, out Vector3 center, out Vector3 halfExtents, out Quaternion rotation))
+            if (!TryGetOverlapBox(objectCollider, candidatePosition, releasePadding, out Vector3 center, out Vector3 halfExtents, out Quaternion rotation))
                 continue;
 
             if (HasBlockingOverlap(center, halfExtents, rotation))
@@ -272,16 +283,111 @@ public class GrabbableObject : InteractableObject, IPickupable, IPushable
         return overlapCount > 0;
     }
 
-    private bool TryGetReleaseOverlapBox(Collider sourceCollider, Vector3 candidateRootPosition, out Vector3 center, out Vector3 halfExtents, out Quaternion rotation)
+    private void ClampPlayerDirectedVelocity()
+    {
+        if (HolderObject != null || rb == null || rb.isKinematic || !rb.detectCollisions)
+            return;
+
+        Vector3 velocity = rb.linearVelocity;
+        if (velocity.sqrMagnitude <= minVelocitySqr || playerBlockMask.value == 0)
+            return;
+
+        float deltaTime = Runner != null ? Runner.DeltaTime : Time.fixedDeltaTime;
+        Vector3 predictedPosition = rb.position + velocity * deltaTime;
+
+        bool adjusted = RemovePlayerDirectedVelocityAt(predictedPosition, ref velocity);
+        adjusted |= RemovePlayerDirectedVelocityAt(rb.position, ref velocity);
+
+        if (adjusted)
+            rb.linearVelocity = velocity;
+    }
+
+    private bool RemovePlayerDirectedVelocityAt(Vector3 candidatePosition, ref Vector3 velocity)
+    {
+        if (objectColliders == null || objectColliders.Length == 0)
+        {
+            return RemovePlayerDirectedVelocityForBox(
+                candidatePosition,
+                Vector3.one * Mathf.Max(minExtent, playerBlockPadding),
+                Quaternion.identity,
+                ref velocity);
+        }
+
+        bool adjusted = false;
+        for (int i = 0; i < objectColliders.Length; i++)
+        {
+            Collider objectCollider = objectColliders[i];
+            if (objectCollider == null || !WasColliderEnabledByDefault(i))
+                continue;
+
+            if (!TryGetOverlapBox(objectCollider, candidatePosition, playerBlockPadding, out Vector3 center, out Vector3 halfExtents, out Quaternion rotation))
+                continue;
+
+            if (RemovePlayerDirectedVelocityForBox(center, halfExtents, rotation, ref velocity))
+                adjusted = true;
+        }
+
+        return adjusted;
+    }
+
+    private bool RemovePlayerDirectedVelocityForBox(Vector3 center, Vector3 halfExtents, Quaternion rotation, ref Vector3 velocity)
+    {
+        halfExtents.x = Mathf.Max(minExtent, halfExtents.x);
+        halfExtents.y = Mathf.Max(minExtent, halfExtents.y);
+        halfExtents.z = Mathf.Max(minExtent, halfExtents.z);
+
+        int overlapCount = Runner != null
+            ? Runner.GetPhysicsScene().OverlapBox(
+                center,
+                halfExtents,
+                playerOverlapResults,
+                rotation,
+                playerBlockMask.value,
+                QueryTriggerInteraction.Ignore)
+            : Physics.OverlapBoxNonAlloc(
+                center,
+                halfExtents,
+                playerOverlapResults,
+                rotation,
+                playerBlockMask.value,
+                QueryTriggerInteraction.Ignore);
+
+        bool adjusted = false;
+        for (int i = 0; i < overlapCount; i++)
+        {
+            Collider playerCollider = playerOverlapResults[i];
+            if (playerCollider == null)
+                continue;
+
+            Vector3 directionToPlayer = playerCollider.ClosestPoint(center) - center;
+            if (directionToPlayer.sqrMagnitude <= minVelocitySqr)
+                directionToPlayer = playerCollider.bounds.center - center;
+
+            if (directionToPlayer.sqrMagnitude <= minVelocitySqr)
+                continue;
+
+            directionToPlayer.Normalize();
+            float inwardSpeed = Vector3.Dot(velocity, directionToPlayer);
+            if (inwardSpeed <= 0f)
+                continue;
+
+            velocity -= directionToPlayer * inwardSpeed;
+            adjusted = true;
+        }
+
+        return adjusted;
+    }
+
+    private bool TryGetOverlapBox(Collider sourceCollider, Vector3 candidateRootPosition, float padding, out Vector3 center, out Vector3 halfExtents, out Quaternion rotation)
     {
         center = candidateRootPosition;
-        halfExtents = Vector3.one * releasePadding;
+        halfExtents = Vector3.one * padding;
         rotation = Quaternion.identity;
 
         if (sourceCollider is BoxCollider boxCollider)
         {
             center = candidateRootPosition + (boxCollider.transform.TransformPoint(boxCollider.center) - transform.position);
-            halfExtents = Vector3.Scale(boxCollider.size * 0.5f, Abs(boxCollider.transform.lossyScale)) + Vector3.one * releasePadding;
+            halfExtents = Vector3.Scale(boxCollider.size * 0.5f, Abs(boxCollider.transform.lossyScale)) + Vector3.one * padding;
             rotation = boxCollider.transform.rotation;
             return true;
         }
@@ -289,7 +395,7 @@ public class GrabbableObject : InteractableObject, IPickupable, IPushable
         if (sourceCollider is SphereCollider sphereCollider)
         {
             center = candidateRootPosition + (sphereCollider.transform.TransformPoint(sphereCollider.center) - transform.position);
-            float radius = sphereCollider.radius * MaxComponent(Abs(sphereCollider.transform.lossyScale)) + releasePadding;
+            float radius = sphereCollider.radius * MaxComponent(Abs(sphereCollider.transform.lossyScale)) + padding;
             halfExtents = Vector3.one * radius;
             rotation = Quaternion.identity;
             return true;
@@ -298,7 +404,7 @@ public class GrabbableObject : InteractableObject, IPickupable, IPushable
         if (sourceCollider is CapsuleCollider capsuleCollider)
         {
             center = candidateRootPosition + (capsuleCollider.transform.TransformPoint(capsuleCollider.center) - transform.position);
-            halfExtents = GetCapsuleApproximateHalfExtents(capsuleCollider) + Vector3.one * releasePadding;
+            halfExtents = GetCapsuleApproximateHalfExtents(capsuleCollider) + Vector3.one * padding;
             rotation = capsuleCollider.transform.rotation;
             return true;
         }
@@ -311,7 +417,7 @@ public class GrabbableObject : InteractableObject, IPickupable, IPushable
             return false;
 
         center = candidateRootPosition + (bounds.center - transform.position);
-        halfExtents = bounds.extents + Vector3.one * releasePadding;
+        halfExtents = bounds.extents + Vector3.one * padding;
         rotation = Quaternion.identity;
         return true;
     }
@@ -387,8 +493,11 @@ public class GrabbableObject : InteractableObject, IPickupable, IPushable
             rb.detectCollisions == expectedDetectCollisions &&
             rb.useGravity == expectedUseGravity)
         {
+            ApplyCollisionLayer(disabled);
             return;
         }
+
+        ApplyCollisionLayer(disabled);
 
         if (disabled)
         {
@@ -407,6 +516,15 @@ public class GrabbableObject : InteractableObject, IPickupable, IPushable
         }
 
         physicsDisabledForHold = disabled;
+    }
+
+    private void ApplyCollisionLayer(bool isHeld)
+    {
+        int layer = isHeld
+            ? CollisionPolicyBootstrap.InteractableNoBodyLayer
+            : CollisionPolicyBootstrap.ObjectBodyLayer;
+
+        CollisionPolicyBootstrap.ApplyLayerToColliderOwners(gameObject, layer);
     }
 
     private void SetCollidersEnabled(bool enabled)
@@ -455,7 +573,11 @@ public class GrabbableObject : InteractableObject, IPickupable, IPushable
         if (!Object.HasStateAuthority)
             return;
 
-        if (!isHeld) return;
+        if (!isHeld)
+        {
+            ClampPlayerDirectedVelocity();
+            return;
+        }
 
         var holder = HolderObject.GetComponent<PlayerGrabHandler>();
         if (holder == null || holder.HoldPoint == null)

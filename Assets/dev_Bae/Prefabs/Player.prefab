@@ -465,7 +465,7 @@ MonoBehaviour:
   pushForce: 3
   pushProbeMask:
     serializedVersion: 2
-    m_Bits: 1536
+    m_Bits: 3584
   pushProbeRadius: 0.25
   pushProbeDistance: 0.45
   blockedPushSlowdown: 0

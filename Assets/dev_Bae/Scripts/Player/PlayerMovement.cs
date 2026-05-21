@@ -21,10 +21,13 @@ public class PlayerMovement : NetworkBehaviour
     [Header("Gravity & Jump")]
     public float gravity    = -9.81f;
     public float jumpHeight = 1.5f;
+    [SerializeField] private float stepRiseVelocityTolerance = 0.01f;
+    [SerializeField] private float stepGroundCheckDistance = 0.12f;
 
     private NetworkCharacterController cc;
     private CharacterController characterController;
     private readonly RaycastHit[] pushProbeHits = new RaycastHit[8];
+    private readonly RaycastHit[] groundProbeHits = new RaycastHit[4];
 
     [Networked] public NetworkBool IsFalling   { get; set; }
     [Networked] private float Yaw              { get; set; }
@@ -45,6 +48,8 @@ public class PlayerMovement : NetworkBehaviour
 
         if (pushProbeMask.value == 0)
             pushProbeMask = CollisionPolicyBootstrap.PushableMask;
+        else
+            pushProbeMask = pushProbeMask.value | CollisionPolicyBootstrap.PushableMask;
     }
 
     public override void Spawned()
@@ -103,14 +108,28 @@ public class PlayerMovement : NetworkBehaviour
 
         Yaw = transform.eulerAngles.y;
 
-        Vector3 resolvedMoveDir = ResolvePushProbe(moveDir);
+        Vector3 resolvedMoveDir = ResolvePushProbe(moveDir, out bool isBlockingHeavyPush, out Vector3 heavyBlockNormal);
+        float previousY = transform.position.y;
+        float previousStepOffset = characterController != null ? characterController.stepOffset : 0f;
+        if (isBlockingHeavyPush && characterController != null)
+            characterController.stepOffset = 0f;
         cc.Move(resolvedMoveDir); // NCC 내부에서 normalize + gravity + grounded 처리
+        if (isBlockingHeavyPush && characterController != null)
+            characterController.stepOffset = previousStepOffset;
+
+        if (isBlockingHeavyPush)
+            RemoveVelocityIntoBlock(heavyBlockNormal);
+
+        SuppressStepRiseVelocity(previousY, jumping, isBlockingHeavyPush);
 
         IsFalling = !cc.Grounded && cc.Velocity.y < 0f;
     }
 
-    private Vector3 ResolvePushProbe(Vector3 moveDir)
+    private Vector3 ResolvePushProbe(Vector3 moveDir, out bool isBlockingHeavyPush, out Vector3 heavyBlockNormal)
     {
+        isBlockingHeavyPush = false;
+        heavyBlockNormal = Vector3.zero;
+
         if (moveDir.sqrMagnitude <= 0.0001f)
             return moveDir;
 
@@ -125,7 +144,7 @@ public class PlayerMovement : NetworkBehaviour
         }
 
         if (hit.collider != null && hit.collider.gameObject.layer == CollisionPolicyBootstrap.HeavyPuzzleLayer)
-            return RemoveBlockedPushComponent(moveDir, hit.normal);
+            return RemoveBlockedPushComponent(moveDir, hit.normal, out isBlockingHeavyPush, out heavyBlockNormal);
 
         return moveDir;
     }
@@ -191,26 +210,118 @@ public class PlayerMovement : NetworkBehaviour
         return 0.25f;
     }
 
-    private Vector3 RemoveBlockedPushComponent(Vector3 moveDir, Vector3 hitNormal)
+    private Vector3 RemoveBlockedPushComponent(Vector3 moveDir, Vector3 hitNormal, out bool isBlockingHeavyPush, out Vector3 heavyBlockNormal)
     {
+        isBlockingHeavyPush = false;
+        heavyBlockNormal = Vector3.zero;
+
         hitNormal.y = 0f;
         if (hitNormal.sqrMagnitude <= 0.0001f)
+        {
+            isBlockingHeavyPush = true;
             return moveDir * blockedPushSlowdown;
+        }
 
         hitNormal.Normalize();
+        heavyBlockNormal = hitNormal;
 
         float inwardAmount = Vector3.Dot(moveDir, -hitNormal);
         if (inwardAmount <= 0f)
             return moveDir;
 
+        isBlockingHeavyPush = true;
         return moveDir + hitNormal * inwardAmount * (1f - blockedPushSlowdown);
+    }
+
+    private void RemoveVelocityIntoBlock(Vector3 blockNormal)
+    {
+        if (cc == null)
+            return;
+
+        blockNormal.y = 0f;
+        if (blockNormal.sqrMagnitude <= 0.0001f)
+            return;
+
+        blockNormal.Normalize();
+
+        Vector3 velocity = cc.Velocity;
+        Vector3 horizontalVelocity = new Vector3(velocity.x, 0f, velocity.z);
+        float inwardSpeed = Vector3.Dot(horizontalVelocity, -blockNormal);
+        if (inwardSpeed <= 0f)
+            return;
+
+        horizontalVelocity += blockNormal * inwardSpeed;
+        velocity.x = horizontalVelocity.x;
+        velocity.z = horizontalVelocity.z;
+        cc.Velocity = velocity;
+    }
+
+    private void SuppressStepRiseVelocity(float previousY, bool jumpedThisTick, bool preventStepRise)
+    {
+        if (jumpedThisTick || cc == null)
+            return;
+
+        float deltaY = transform.position.y - previousY;
+        if (deltaY <= stepRiseVelocityTolerance)
+            return;
+
+        if (preventStepRise)
+        {
+            Vector3 position = transform.position;
+            position.y = previousY;
+            transform.position = position;
+
+            Vector3 stepVelocity = cc.Velocity;
+            if (stepVelocity.y > 0f)
+            {
+                stepVelocity.y = 0f;
+                cc.Velocity = stepVelocity;
+            }
+
+            return;
+        }
+
+        if (!cc.Grounded && !IsNearGround())
+            return;
+
+        Vector3 velocity = cc.Velocity;
+        if (velocity.y <= 0f)
+            return;
+
+        velocity.y = 0f;
+        cc.Velocity = velocity;
+    }
+
+    private bool IsNearGround()
+    {
+        if (cc != null && cc.Grounded)
+            return true;
+
+        if (characterController == null || stepGroundCheckDistance <= 0f)
+            return false;
+
+        float radius = Mathf.Max(0.01f, characterController.radius - characterController.skinWidth);
+        float halfHeight = Mathf.Max(radius, characterController.height * 0.5f - radius);
+        Vector3 center = transform.TransformPoint(characterController.center);
+        Vector3 bottomSphereCenter = center + Vector3.down * halfHeight;
+        Vector3 castOrigin = bottomSphereCenter + Vector3.up * Mathf.Max(characterController.skinWidth, 0.01f);
+
+        int hitCount = Runner.GetPhysicsScene().SphereCast(
+            castOrigin,
+            radius,
+            Vector3.down,
+            groundProbeHits,
+            stepGroundCheckDistance + Mathf.Max(characterController.skinWidth, 0.01f),
+            ~CollisionPolicyBootstrap.PlayerBodyMask,
+            QueryTriggerInteraction.Ignore);
+
+        return hitCount > 0;
     }
 
     private void OnControllerColliderHit(ControllerColliderHit hit)
     {
         if (!HasInputAuthority) return;
-        if (hit.collider.gameObject.layer == CollisionPolicyBootstrap.InteractableNoBodyLayer ||
-            hit.collider.gameObject.layer == CollisionPolicyBootstrap.HeavyPuzzleLayer)
+        if (hit.collider.gameObject.layer == CollisionPolicyBootstrap.InteractableNoBodyLayer)
         {
             return;
         }

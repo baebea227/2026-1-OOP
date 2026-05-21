@@ -205,13 +205,18 @@ public class HeavyObject : InteractableObject, IPushable
 
     private void StopMotion()
     {
+        if (rb == null || rb.isKinematic)
+            return;
+
         rb.linearVelocity = Vector3.zero;
         rb.angularVelocity = Vector3.zero;
     }
 
     private void ApplyScriptedMovementSetup()
     {
+        rb.isKinematic = true;
         rb.useGravity = false;
+        rb.collisionDetectionMode = CollisionDetectionMode.ContinuousSpeculative;
         if (rb.constraints != ScriptedMovementConstraints)
             rb.constraints = ScriptedMovementConstraints;
 
