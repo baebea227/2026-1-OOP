@@ -182,7 +182,7 @@ MonoBehaviour:
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 9992e7cbaf3761b4a94f359c7ef6ff00, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::FirstPersonCamera
+  m_EditorClassIdentifier: Assembly-CSharp::PlayerSplitScreenCamera
   pivotOffset: {x: 0.35, y: 1.35, z: 0}
   distance: 4
   sideOffset: 0.2

@@ -1,8 +1,20 @@
+using System.Collections.Generic;
 using UnityEngine;
 using Fusion;
 
-public class FirstPersonCamera : NetworkBehaviour
+public class PlayerSplitScreenCamera : NetworkBehaviour
 {
+    private const int SplitScreenPlayerCount = 2;
+    private const float SeparatorWidth = 2f;
+
+    private static readonly Rect[] SplitScreenRects = new Rect[]
+    {
+        new Rect(0f, 0f, 0.5f, 1f),
+        new Rect(0.5f, 0f, 0.5f, 1f)
+    };
+    private static readonly List<PlayerSplitScreenCamera> registeredCameras = new List<PlayerSplitScreenCamera>();
+    private static Camera splitScreenBackgroundCamera;
+
     [Header("Third Person Settings")]
     public Vector3 pivotOffset = new Vector3(0.35f, 1.35f, 0f);
     public float distance = 4f;
@@ -19,6 +31,7 @@ public class FirstPersonCamera : NetworkBehaviour
 
     private Camera cam;
     private PlayerInputHandler inputHandler;
+    private PlayerMovement playerMovement;
     private Transform target;
     private Collider[] ownerColliders;
     private Vector3 followVelocity;
@@ -39,51 +52,57 @@ public class FirstPersonCamera : NetworkBehaviour
 
     public override void Spawned()
     {
+        inputHandler = GetComponentInParent<PlayerInputHandler>();
+        playerMovement = GetComponentInParent<PlayerMovement>();
+
+        if (target == null)
+            target = GetComponentInParent<NetworkObject>()?.transform;
+
+        if (target != null)
+            ownerColliders = target.GetComponentsInChildren<Collider>();
+
+        transform.SetParent(null, true);
+        initialized = false;
+        followVelocity = Vector3.zero;
+
+        RegisterCamera();
+
         if (HasInputAuthority)
         {
-            inputHandler = GetComponentInParent<PlayerInputHandler>();
-
-            if (target != null)
-                ownerColliders = target.GetComponentsInChildren<Collider>();
-
-            transform.SetParent(null, true);
-            initialized = false;
-            followVelocity = Vector3.zero;
-
-            cam.enabled = true;
             Cursor.lockState = CursorLockMode.Locked;
             Cursor.visible = false;
-        }
-        else
-        {
-            cam.enabled = false;
         }
     }
 
     public override void Despawned(NetworkRunner runner, bool hasState)
     {
+        UnregisterCamera();
+
         if (HasInputAuthority)
         {
             Cursor.lockState = CursorLockMode.None;
             Cursor.visible = true;
-
-            if (originalParent != null)
-                transform.SetParent(originalParent, true);
         }
+
+        if (originalParent != null)
+            transform.SetParent(originalParent, true);
     }
 
     private void OnDestroy()
     {
+        UnregisterCamera();
+
         if (crosshairTexture != null)
             Destroy(crosshairTexture);
     }
 
     public override void Render()
     {
-        if (!HasInputAuthority || target == null) return;
+        UpdateSplitScreenCameras();
 
-        float yaw = inputHandler != null ? inputHandler.CameraYaw : target.eulerAngles.y;
-        float pitch = inputHandler != null ? inputHandler.CameraPitch : 0f;
+        if (target == null || cam == null || !cam.enabled) return;
+
+        GetCameraAngles(out float yaw, out float pitch);
         Quaternion orbitRotation = Quaternion.Euler(pitch, yaw, 0f);
         Vector3 pivot =
             target.position +
@@ -116,20 +135,171 @@ public class FirstPersonCamera : NetworkBehaviour
 
     private void OnGUI()
     {
-        if (!HasInputAuthority || !showCrosshair)
+        if (!HasInputAuthority)
+            return;
+
+        DrawSplitSeparator();
+
+        if (!showCrosshair || cam == null || !cam.enabled)
             return;
 
         Texture2D texture = GetCrosshairTexture();
         if (texture == null)
             return;
 
-        float centerX = Screen.width * 0.5f;
-        float centerY = Screen.height * 0.5f;
+        Rect cameraPixelRect = cam.pixelRect;
+        float centerX = cameraPixelRect.x + cameraPixelRect.width * 0.5f;
+        float centerY = Screen.height - (cameraPixelRect.y + cameraPixelRect.height * 0.5f);
         float diameter = Mathf.Max(1, crosshairDiameter);
 
         GUI.DrawTexture(
             new Rect(centerX - diameter * 0.5f, centerY - diameter * 0.5f, diameter, diameter),
             texture);
+    }
+
+    private void GetCameraAngles(out float yaw, out float pitch)
+    {
+        if (HasInputAuthority && inputHandler != null)
+        {
+            yaw = inputHandler.CameraYaw;
+            pitch = inputHandler.CameraPitch;
+            return;
+        }
+
+        if (playerMovement != null)
+        {
+            yaw = playerMovement.CameraYaw;
+            pitch = playerMovement.CameraPitch;
+            return;
+        }
+
+        yaw = target != null ? target.eulerAngles.y : 0f;
+        pitch = 0f;
+    }
+
+    private void RegisterCamera()
+    {
+        if (!registeredCameras.Contains(this))
+            registeredCameras.Add(this);
+
+        UpdateSplitScreenCameras();
+    }
+
+    private void UnregisterCamera()
+    {
+        registeredCameras.Remove(this);
+
+        if (registeredCameras.Count == 0)
+            DestroySplitScreenBackgroundCamera();
+        else
+            UpdateSplitScreenCameras();
+    }
+
+    private static void UpdateSplitScreenCameras()
+    {
+        registeredCameras.RemoveAll(IsInvalidRegisteredCamera);
+
+        if (registeredCameras.Count == 0)
+        {
+            DestroySplitScreenBackgroundCamera();
+            return;
+        }
+
+        EnsureSplitScreenBackgroundCamera();
+        registeredCameras.Sort(CompareCameraSlots);
+
+        for (int i = 0; i < registeredCameras.Count; i++)
+        {
+            bool visible = i < SplitScreenPlayerCount;
+            Rect viewport = visible ? SplitScreenRects[i] : default;
+            registeredCameras[i].ConfigureSplitScreenSlot(visible, viewport);
+        }
+    }
+
+    private static bool IsInvalidRegisteredCamera(PlayerSplitScreenCamera camera)
+    {
+        return camera == null || camera.cam == null || camera.Object == null;
+    }
+
+    private static int CompareCameraSlots(PlayerSplitScreenCamera a, PlayerSplitScreenCamera b)
+    {
+        int playerOrder = a.GetPlayerSortKey().CompareTo(b.GetPlayerSortKey());
+        if (playerOrder != 0)
+            return playerOrder;
+
+        return a.GetInstanceID().CompareTo(b.GetInstanceID());
+    }
+
+    private int GetPlayerSortKey()
+    {
+        return Object != null ? Object.InputAuthority.RawEncoded : int.MaxValue;
+    }
+
+    private void ConfigureSplitScreenSlot(bool visible, Rect viewport)
+    {
+        if (cam == null)
+            return;
+
+        cam.enabled = visible;
+
+        if (visible)
+        {
+            cam.rect = viewport;
+            cam.targetDisplay = 0;
+            cam.depth = 0f;
+        }
+
+        AudioListener listener = cam.GetComponent<AudioListener>();
+        if (listener != null)
+            listener.enabled = visible && HasInputAuthority;
+    }
+
+    private static void EnsureSplitScreenBackgroundCamera()
+    {
+        if (splitScreenBackgroundCamera != null)
+        {
+            splitScreenBackgroundCamera.enabled = true;
+            splitScreenBackgroundCamera.rect = new Rect(0f, 0f, 1f, 1f);
+            return;
+        }
+
+        GameObject backgroundObject = new GameObject("SplitScreenBlackBackgroundCamera");
+        backgroundObject.hideFlags = HideFlags.DontSave;
+
+        splitScreenBackgroundCamera = backgroundObject.AddComponent<Camera>();
+        splitScreenBackgroundCamera.clearFlags = CameraClearFlags.SolidColor;
+        splitScreenBackgroundCamera.backgroundColor = Color.black;
+        splitScreenBackgroundCamera.cullingMask = 0;
+        splitScreenBackgroundCamera.depth = -1000f;
+        splitScreenBackgroundCamera.rect = new Rect(0f, 0f, 1f, 1f);
+        splitScreenBackgroundCamera.targetDisplay = 0;
+        splitScreenBackgroundCamera.allowHDR = false;
+        splitScreenBackgroundCamera.allowMSAA = false;
+        splitScreenBackgroundCamera.useOcclusionCulling = false;
+    }
+
+    private static void DestroySplitScreenBackgroundCamera()
+    {
+        if (splitScreenBackgroundCamera == null)
+            return;
+
+        Camera backgroundCamera = splitScreenBackgroundCamera;
+        splitScreenBackgroundCamera = null;
+
+        if (Application.isPlaying)
+            UnityEngine.Object.Destroy(backgroundCamera.gameObject);
+        else
+            UnityEngine.Object.DestroyImmediate(backgroundCamera.gameObject);
+    }
+
+    private static void DrawSplitSeparator()
+    {
+        Color oldColor = GUI.color;
+        GUI.color = Color.black;
+        GUI.DrawTexture(
+            new Rect(Screen.width * 0.5f - SeparatorWidth * 0.5f, 0f, SeparatorWidth, Screen.height),
+            Texture2D.whiteTexture);
+        GUI.color = oldColor;
     }
 
     private Texture2D GetCrosshairTexture()

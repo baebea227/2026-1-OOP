@@ -24,6 +24,8 @@ public class PlayerMovement : NetworkBehaviour
     [Networked] public Vector2 MoveInput       { get; set; }
     [Networked] public NetworkBool IsSprinting { get; set; }
     [Networked] public NetworkBool IsJumping   { get; set; }
+    [Networked] public float CameraYaw         { get; private set; }
+    [Networked] public float CameraPitch       { get; private set; }
 
     public bool  IsGrounded      => cc.Grounded;
     public float VerticalVelocity => cc.Velocity.y;
@@ -44,6 +46,9 @@ public class PlayerMovement : NetworkBehaviour
     public override void FixedUpdateNetwork()
     {
         if (!GetInput(out PlayerNetworkInput input)) return;
+
+        CameraYaw = input.yaw;
+        CameraPitch = input.pitch;
 
         bool sprinting = input.isSprinting && input.moveInput.y > 0;
         bool jumping   = input.isJumping && cc.Grounded;
