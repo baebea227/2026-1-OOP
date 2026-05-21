@@ -6,12 +6,15 @@ public class HeavyObject : InteractableObject, IPushable
 {
     [Header("Heavy Settings")]
     public int requiredPushers = 2;
+    public float scriptedMoveSpeed = 1.5f;
+    public float pushHoldDuration = 0.25f;
+    [SerializeField] private Transform rangeMinCorner;
+    [SerializeField] private Transform rangeMaxCorner;
 
     private struct PushSample
     {
         public float time;
         public int directionIndex;
-        public float forceMagnitude;
     }
 
     private const int PositiveLocalX = 0;
@@ -21,29 +24,26 @@ public class HeavyObject : InteractableObject, IPushable
     private const int DirectionCount = 4;
     private const float minPushForceSqr = 0.0001f;
 
-    private static readonly RigidbodyConstraints MovementConstraints =
+    private static readonly RigidbodyConstraints ScriptedMovementConstraints =
         RigidbodyConstraints.FreezePositionY | RigidbodyConstraints.FreezeRotation;
-    private static readonly RigidbodyConstraints LockedMovementConstraints =
-        MovementConstraints | RigidbodyConstraints.FreezePositionX | RigidbodyConstraints.FreezePositionZ;
 
     private readonly Dictionary<PlayerRef, PushSample> pushSamples = new();
     private const float pushWindow = 0.15f;
-    private const float authorizedMoveDuration = 0.25f;
-    private float lastForcedTime = -1f;
-    private float authorizedMoveUntil = -1f;
-    private int authorizedDirection = -1;
-    private const float forceCooldown = 0.1f;
+    private float activeMoveUntil = -1f;
+    private int activeDirection = -1;
+    private bool warnedIncompleteRange;
 
     protected override void Awake()
     {
         base.Awake();
-        ApplyLockedMovementConstraints();
+        CollisionPolicyBootstrap.ApplyLayerToColliderOwners(gameObject, CollisionPolicyBootstrap.HeavyPuzzleLayer);
+        ApplyScriptedMovementSetup();
     }
 
     public override void Spawned()
     {
         base.Spawned();
-        ApplyLockedMovementConstraints();
+        ApplyScriptedMovementSetup();
     }
 
     public override void FixedUpdateNetwork()
@@ -51,13 +51,17 @@ public class HeavyObject : InteractableObject, IPushable
         if (!Object.HasStateAuthority)
             return;
 
-        ClampMotionToFaceAxis();
+        float now = Runner.SimulationTime;
+        if (TryGetCooperativePush(now, out int cooperativeDirection))
+            ActivateScriptedMove(cooperativeDirection, now);
+
+        ApplyScriptedMove(now);
     }
 
     public void OnPush(Vector3 force, PlayerRef pusher)
     {
         if (Object.HasStateAuthority)
-            TryApplyForce(force, pusher);
+            TryRecordPush(force, pusher);
         else
             RPC_Push(force, pusher);
     }
@@ -65,39 +69,25 @@ public class HeavyObject : InteractableObject, IPushable
     [Rpc(RpcSources.All, RpcTargets.StateAuthority)]
     private void RPC_Push(Vector3 force, PlayerRef pusher)
     {
-        TryApplyForce(force, pusher);
+        TryRecordPush(force, pusher);
     }
 
-    private void TryApplyForce(Vector3 force, PlayerRef pusher)
+    private void TryRecordPush(Vector3 force, PlayerRef pusher)
     {
-        if (!TrySnapForce(force, out int directionIndex, out float forceMagnitude))
+        if (!TrySnapForce(force, out int directionIndex))
             return;
 
         float now = Runner.SimulationTime;
         pushSamples[pusher] = new PushSample
         {
             time = now,
-            directionIndex = directionIndex,
-            forceMagnitude = forceMagnitude
+            directionIndex = directionIndex
         };
-
-        if (now - lastForcedTime <= forceCooldown)
-            return;
-
-        if (TryGetCooperativePush(now, out int cooperativeDirection, out float cooperativeMagnitude))
-        {
-            Vector3 pushForce = GetWorldDirection(cooperativeDirection) * cooperativeMagnitude;
-            UnlockForAuthorizedMove(cooperativeDirection, now);
-            rb.WakeUp();
-            rb.AddForce(pushForce, ForceMode.Impulse);
-            lastForcedTime = now;
-        }
     }
 
-    private bool TrySnapForce(Vector3 force, out int directionIndex, out float forceMagnitude)
+    private bool TrySnapForce(Vector3 force, out int directionIndex)
     {
         force.y = 0f;
-        forceMagnitude = force.magnitude;
 
         if (force.sqrMagnitude <= minPushForceSqr)
         {
@@ -116,10 +106,9 @@ public class HeavyObject : InteractableObject, IPushable
         return true;
     }
 
-    private bool TryGetCooperativePush(float now, out int directionIndex, out float forceMagnitude)
+    private bool TryGetCooperativePush(float now, out int directionIndex)
     {
         int[] activeCounts = new int[DirectionCount];
-        float[] forceSums = new float[DirectionCount];
 
         foreach (var sample in pushSamples.Values)
         {
@@ -127,7 +116,6 @@ public class HeavyObject : InteractableObject, IPushable
                 continue;
 
             activeCounts[sample.directionIndex]++;
-            forceSums[sample.directionIndex] += sample.forceMagnitude;
         }
 
         int bestDirection = -1;
@@ -152,12 +140,10 @@ public class HeavyObject : InteractableObject, IPushable
         if (bestDirection < 0 || bestCount < requiredPushers || hasTie)
         {
             directionIndex = -1;
-            forceMagnitude = 0f;
             return false;
         }
 
         directionIndex = bestDirection;
-        forceMagnitude = forceSums[bestDirection] / bestCount;
         return true;
     }
 
@@ -181,57 +167,40 @@ public class HeavyObject : InteractableObject, IPushable
         return worldDirection.normalized;
     }
 
-    private void ClampMotionToFaceAxis()
+    private void ApplyScriptedMove(float now)
     {
-        if (rb.isKinematic)
-            return;
+        StopMotion();
 
-        if (!HasAuthorizedMovement())
+        if (!HasAuthorizedMovement(now))
         {
-            StopMotion();
-            ApplyLockedMovementConstraints();
+            activeDirection = -1;
             return;
         }
 
-        ApplyMovementConstraints();
-
-        Vector3 velocity = rb.linearVelocity;
-        velocity.y = 0f;
-
-        if (velocity.sqrMagnitude <= minPushForceSqr)
-        {
-            StopMotion();
+        Vector3 moveDirection = GetWorldDirection(activeDirection);
+        if (moveDirection.sqrMagnitude <= minPushForceSqr)
             return;
-        }
 
-        if (!TrySnapForce(velocity, out int directionIndex, out _) || directionIndex != authorizedDirection)
-        {
-            StopMotion();
+        float moveDistance = Mathf.Max(0f, scriptedMoveSpeed) * Runner.DeltaTime;
+        if (moveDistance <= 0f)
             return;
-        }
 
-        Vector3 allowedDirection = GetWorldDirection(authorizedDirection);
-        float allowedSpeed = Vector3.Dot(velocity, allowedDirection);
-        if (allowedSpeed <= 0f)
-        {
-            StopMotion();
+        Vector3 nextPosition = rb.position + moveDirection * moveDistance;
+        if (!TryApplyMovementRange(ref nextPosition))
             return;
-        }
 
-        rb.linearVelocity = allowedDirection * allowedSpeed;
-        rb.angularVelocity = Vector3.zero;
+        rb.MovePosition(nextPosition);
     }
 
-    private void UnlockForAuthorizedMove(int directionIndex, float now)
+    private void ActivateScriptedMove(int directionIndex, float now)
     {
-        authorizedDirection = directionIndex;
-        authorizedMoveUntil = now + authorizedMoveDuration;
-        ApplyMovementConstraints();
+        activeDirection = directionIndex;
+        activeMoveUntil = now + Mathf.Max(0f, pushHoldDuration);
     }
 
-    private bool HasAuthorizedMovement()
+    private bool HasAuthorizedMovement(float now)
     {
-        return authorizedDirection >= 0 && Runner.SimulationTime <= authorizedMoveUntil;
+        return activeDirection >= 0 && now <= activeMoveUntil;
     }
 
     private void StopMotion()
@@ -240,15 +209,51 @@ public class HeavyObject : InteractableObject, IPushable
         rb.angularVelocity = Vector3.zero;
     }
 
-    private void ApplyMovementConstraints()
+    private void ApplyScriptedMovementSetup()
     {
-        if (rb.constraints != MovementConstraints)
-            rb.constraints = MovementConstraints;
+        rb.useGravity = false;
+        if (rb.constraints != ScriptedMovementConstraints)
+            rb.constraints = ScriptedMovementConstraints;
+
+        StopMotion();
     }
 
-    private void ApplyLockedMovementConstraints()
+    private bool TryApplyMovementRange(ref Vector3 nextPosition)
     {
-        if (rb.constraints != LockedMovementConstraints)
-            rb.constraints = LockedMovementConstraints;
+        if (rangeMinCorner == null && rangeMaxCorner == null)
+            return true;
+
+        if (rangeMinCorner == null || rangeMaxCorner == null)
+        {
+            if (!warnedIncompleteRange)
+            {
+                Debug.LogWarning($"{name} has an incomplete HeavyObject movement range.", this);
+                warnedIncompleteRange = true;
+            }
+
+            return false;
+        }
+
+        Vector3 a = rangeMinCorner.position;
+        Vector3 b = rangeMaxCorner.position;
+
+        nextPosition.x = Mathf.Clamp(nextPosition.x, Mathf.Min(a.x, b.x), Mathf.Max(a.x, b.x));
+        nextPosition.y = rb.position.y;
+        nextPosition.z = Mathf.Clamp(nextPosition.z, Mathf.Min(a.z, b.z), Mathf.Max(a.z, b.z));
+        return true;
+    }
+
+    private void OnDrawGizmosSelected()
+    {
+        if (rangeMinCorner == null || rangeMaxCorner == null)
+            return;
+
+        Vector3 a = rangeMinCorner.position;
+        Vector3 b = rangeMaxCorner.position;
+        Vector3 center = new Vector3((a.x + b.x) * 0.5f, transform.position.y, (a.z + b.z) * 0.5f);
+        Vector3 size = new Vector3(Mathf.Abs(a.x - b.x), 0.05f, Mathf.Abs(a.z - b.z));
+
+        Gizmos.color = Color.yellow;
+        Gizmos.DrawWireCube(center, size);
     }
 }
