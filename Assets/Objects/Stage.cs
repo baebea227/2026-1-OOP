@@ -4,6 +4,7 @@ using UnityEngine;
 public class Stage : NetworkBehaviour
 {
     [SerializeField] Transform goalPoint;
+    public GameObject goalPointMarker;
     public bool IsCleared { get; private set; }
     bool isCurStage;
 
@@ -22,6 +23,7 @@ public class Stage : NetworkBehaviour
     public void StageEnd()
     {
         isCurStage = false;
+        goalPointMarker.SetActive(false);
     }
 
     void ClearCheck()
@@ -51,14 +53,17 @@ public class Stage : NetworkBehaviour
 
     private void OnDrawGizmos()
     {
-        // Set the color with custom alpha.
-        Gizmos.color = new Color(1f, 0f, 0f, 1f); // Red with custom alpha
+        if (isCurStage)
+        {
+            // Set the color with custom alpha.
+            Gizmos.color = new Color(1f, 0f, 0f, 1f); // Red with custom alpha
 
-        // Draw the sphere.
-        Gizmos.DrawSphere(goalPoint.position, 1.5f);
+            // Draw the sphere.
+            Gizmos.DrawSphere(goalPoint.position, 1.5f);
 
-        // Draw wire sphere outline.
-        Gizmos.color = Color.white;
-        Gizmos.DrawWireSphere(goalPoint.position, 1.5f);
+            // Draw wire sphere outline.
+            Gizmos.color = Color.white;
+            Gizmos.DrawWireSphere(goalPoint.position, 1.5f);
+        }
     }
 }
