@@ -432,6 +432,19 @@ public class WaitingRoomManager : MonoBehaviour, INetworkRunnerCallbacks
         return null;
     }
 
+    private void DespawnRoomPlayerStateIfHost(PlayerRef player)
+    {
+        if (runner == null || !runner.IsServer)
+            return;
+
+        RoomPlayerState state = FindRoomPlayerState(player);
+
+        if (state == null || state.Object == null)
+            return;
+
+        runner.Despawn(state.Object);
+    }
+
     /// <summary>
     /// 현재 대기방에 존재하는 모든 RoomPlayerState를 가져옴
     /// UI 표시와 게임 시작 조건 검사에 사용
@@ -771,6 +784,7 @@ public class WaitingRoomManager : MonoBehaviour, INetworkRunnerCallbacks
         this.runner = runner;
 
         SetStatus($"Player left: {player}");
+        DespawnRoomPlayerStateIfHost(player);
         LogRoomState($"OnPlayerLeft player={player}", runner);
         UpdateAllUI();
     }
