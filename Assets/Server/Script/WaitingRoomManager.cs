@@ -353,12 +353,12 @@ public class WaitingRoomManager : MonoBehaviour, INetworkRunnerCallbacks
     /// 방 나가기 버튼 클릭 시 실행
     /// 세션을 종료하고 로비 씬으로 돌아감
     /// </summary>
-    private void OnClickLeave()
+    private async void OnClickLeave()
     {
         SetStatus("Leaving room");
 
         if (networkSessionManager != null)
-            networkSessionManager.LeaveSession();
+            await networkSessionManager.LeaveSessionAsync();
 
         if (sceneFlowManager != null)
             sceneFlowManager.LoadLobbySceneLocal();

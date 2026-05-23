@@ -295,7 +295,7 @@ public class StageSettingsMenu : MonoBehaviour
         return null;
     }
 
-    private void OnClickLeaveGame()
+    private async void OnClickLeaveGame()
     {
         if (isLeaving)
             return;
@@ -323,7 +323,7 @@ public class StageSettingsMenu : MonoBehaviour
             sessionManager = FindAnyObjectByType<NetworkSessionManager>(FindObjectsInactive.Include);
 
         if (sessionManager != null)
-            sessionManager.LeaveSession();
+            await sessionManager.LeaveSessionAsync();
 
         SceneFlowManager sceneFlowManager = FindAnyObjectByType<SceneFlowManager>(FindObjectsInactive.Include);
         if (sceneFlowManager != null)

@@ -324,6 +324,11 @@ public class NetworkSessionManager : MonoBehaviour, INetworkRunnerCallbacks
 
     public async void LeaveSession()
     {
+        await LeaveSessionAsync();
+    }
+
+    public async Task LeaveSessionAsync()
+    {
         if (isBusy)
             return;
 
