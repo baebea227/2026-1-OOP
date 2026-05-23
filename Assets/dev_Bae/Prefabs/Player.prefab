@@ -182,10 +182,7 @@ MonoBehaviour:
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 9992e7cbaf3761b4a94f359c7ef6ff00, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::FirstPersonCamera
-  sensitivity: 0.15
-  minPitch: -35
-  maxPitch: 55
+  m_EditorClassIdentifier: Assembly-CSharp::PlayerSplitScreenCamera
   pivotOffset: {x: 0.35, y: 1.35, z: 0}
   distance: 4
   sideOffset: 0.2
@@ -286,6 +283,14 @@ PrefabInstance:
     - target: {fileID: 919132149155446097, guid: f1e8e1bfafe7fa241ba6b4181f3eba85, type: 3}
       propertyPath: m_Name
       value: Player
+      objectReference: {fileID: 0}
+    - target: {fileID: 919132149155446097, guid: f1e8e1bfafe7fa241ba6b4181f3eba85, type: 3}
+      propertyPath: m_TagString
+      value: Player
+      objectReference: {fileID: 0}
+    - target: {fileID: 919132149155446097, guid: f1e8e1bfafe7fa241ba6b4181f3eba85, type: 3}
+      propertyPath: m_Layer
+      value: 8
       objectReference: {fileID: 0}
     - target: {fileID: 2775862123970177323, guid: f1e8e1bfafe7fa241ba6b4181f3eba85, type: 3}
       propertyPath: 'm_Materials.Array.data[0]'
@@ -458,6 +463,12 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PlayerMovement
   pushForce: 3
+  pushProbeMask:
+    serializedVersion: 2
+    m_Bits: 3584
+  pushProbeRadius: 0.25
+  pushProbeDistance: 0.45
+  blockedPushSlowdown: 0
   walkSpeed: 2
   runSpeed: 5
   sprintSpeed: 8
@@ -484,6 +495,8 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PlayerInputHandler
   lookSensitivity: 0.15
+  minPitch: -35
+  maxPitch: 55
 --- !u!114 &-6943976382128988104
 MonoBehaviour:
   m_ObjectHideFlags: 0

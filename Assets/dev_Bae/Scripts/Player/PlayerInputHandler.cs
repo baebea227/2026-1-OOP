@@ -54,26 +54,26 @@ public class PlayerInputHandler : NetworkBehaviour
             if (Runner != null && Object != null)
                 Runner.SetPlayerObject(Object.InputAuthority, Object);
 
-            AudioListener audioListener = GetComponentInChildren<AudioListener>();
-            if (audioListener != null)
-                audioListener.enabled = true;
-
-            Camera cam = GetComponentInChildren<Camera>();
+            Camera cam = GetComponentInChildren<Camera>(true);
             if (cam != null)
                 cam.gameObject.SetActive(true);
+
+            AudioListener audioListener = GetComponentInChildren<AudioListener>(true);
+            if (audioListener != null)
+                audioListener.enabled = true;
 
             return;
         }
 
         playerInput.enabled = false;
 
-        AudioListener remoteAudioListener = GetComponentInChildren<AudioListener>();
+        Camera remoteCamera = GetComponentInChildren<Camera>(true);
+        if (remoteCamera != null)
+            remoteCamera.gameObject.SetActive(true);
+
+        AudioListener remoteAudioListener = GetComponentInChildren<AudioListener>(true);
         if (remoteAudioListener != null)
             remoteAudioListener.enabled = false;
-
-        Camera remoteCamera = GetComponentInChildren<Camera>();
-        if (remoteCamera != null)
-            remoteCamera.gameObject.SetActive(false);
     }
 
     public override void Render()

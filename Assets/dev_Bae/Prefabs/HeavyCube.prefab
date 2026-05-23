@@ -16,7 +16,7 @@ GameObject:
   - component: {fileID: -1338053659435860437}
   - component: {fileID: 5952641740882698876}
   - component: {fileID: 6627342424668115511}
-  m_Layer: 0
+  m_Layer: 10
   m_Name: HeavyCube
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -130,6 +130,10 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::HeavyObject
   weight: 10
   requiredPushers: 2
+  scriptedMoveSpeed: 1.5
+  pushHoldDuration: 0.25
+  rangeMinCorner: {fileID: 0}
+  rangeMaxCorner: {fileID: 0}
 --- !u!54 &-1338053659435860437
 Rigidbody:
   m_ObjectHideFlags: 0
@@ -152,11 +156,11 @@ Rigidbody:
     m_Bits: 0
   m_ImplicitCom: 1
   m_ImplicitTensor: 1
-  m_UseGravity: 1
-  m_IsKinematic: 0
-  m_Interpolate: 0
+  m_UseGravity: 0
+  m_IsKinematic: 1
+  m_Interpolate: 1
   m_Constraints: 116
-  m_CollisionDetection: 0
+  m_CollisionDetection: 3
 --- !u!114 &5952641740882698876
 MonoBehaviour:
   m_ObjectHideFlags: 0

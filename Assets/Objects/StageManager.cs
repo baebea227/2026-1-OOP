@@ -20,6 +20,7 @@ public class StageManager : NetworkBehaviour
         SetStage(stageIndex);
     }
 
+    // RPC 처리 필요?
     void SetStage(int index)
     {
         curStageIndex = index;
@@ -32,11 +33,17 @@ public class StageManager : NetworkBehaviour
     {
         if (stageList[curStageIndex].IsCleared)
         {
-            // 임시 클리어 액션
-            stageList[curStageIndex].StageEnd();
-            stageList[curStageIndex].gameObject.SetActive(false);
-            Debug.Log("Clear!!");
+            RPC_ClearProcess();
         }
+    }
+
+    [Rpc(RpcSources.All, RpcTargets.All)]
+    void RPC_ClearProcess()
+    {
+        // 임시 클리어 액션
+        stageList[curStageIndex].StageEnd();
+        stageList[curStageIndex].gameObject.SetActive(false);
+        Debug.Log("Clear!!");
     }
 
     void Update()

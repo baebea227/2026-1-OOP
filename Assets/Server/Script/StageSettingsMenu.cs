@@ -18,7 +18,7 @@ public class StageSettingsMenu : MonoBehaviour
     private Button leaveButton;
 
     private PlayerInput cachedPlayerInput;
-    private FirstPersonCamera cachedCamera;
+    private PlayerSplitScreenCamera cachedCamera;
 
     private CursorLockMode previousCursorLockState;
     private bool previousCursorVisible;
@@ -280,11 +280,11 @@ public class StageSettingsMenu : MonoBehaviour
         return null;
     }
 
-    private FirstPersonCamera ResolveLocalCamera()
+    private PlayerSplitScreenCamera ResolveLocalCamera()
     {
-        FirstPersonCamera[] cameras = FindObjectsByType<FirstPersonCamera>(FindObjectsSortMode.None);
+        PlayerSplitScreenCamera[] cameras = FindObjectsByType<PlayerSplitScreenCamera>(FindObjectsSortMode.None);
 
-        foreach (FirstPersonCamera camera in cameras)
+        foreach (PlayerSplitScreenCamera camera in cameras)
         {
             if (camera == null || camera.Object == null || !camera.Object.HasInputAuthority)
                 continue;

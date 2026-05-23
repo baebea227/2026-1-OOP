@@ -1,7 +1,6 @@
 using System.Collections;
 using UnityEngine;
 using Fusion;
-using System;
 
 public class Lever : OperatableObject
 {
@@ -10,15 +9,26 @@ public class Lever : OperatableObject
     [SerializeField] Material[] meshSet;
     MeshRenderer mesh;
 
+    [Networked, OnChangedRender(nameof(OnStateChanged))]
+    private NetworkBool NetworkedOperateState { get; set; }
+
     protected override void Awake()
     {
         base.Awake();
-        mesh = GetComponentInChildren<MeshRenderer>();
+        mesh = GetComponent<MeshRenderer>();
 
-        init();
+        Init();
+    }
+
+    public override void Spawned()
+    {
+        if (Object.HasStateAuthority)
+        {
+            NetworkedOperateState = operateState;
+        }
     }
     
-    void init()
+    void Init()
     {
         coolTime = new WaitForSeconds(coolTimeSet);
         int index = operateState ? 1 : 0;
@@ -38,46 +48,29 @@ public class Lever : OperatableObject
         isOperatable = true;
     }
 
-    void ResponseAction()
-    {
-        if (isDisposable)
-        {
-            mesh.material = meshSet[2];
-            return;
-        }
-        int index = operateState ? 1 : 0;
-        mesh.material = meshSet[index];
-    }
-
-    public override void Operate()
-    {
-        operateState = !operateState;
-        connectedObjController.OnActivate(operateState ? 1 : -1);
-        ResponseAction();
-    }
-
-    void OnTriggerEnter(Collider other)
-    {
-        // 임시 조건
-        if (other.CompareTag("Player") && isOperatable)
-        {
-            Operate();
-            StartCoroutine(OperateCooldown());
-        }
-    }
+    // void ResponseAction()
+    // {
+    //     if (isDisposable)
+    //     {
+    //         mesh.material = meshSet[2];
+    //         return;
+    //     }
+    //     int index = operateState ? 1 : 0;
+    //     mesh.material = meshSet[index];
+    // }
 
     public void TryOperate(NetworkObject operatorObject)
     {
-        if (Object.HasStateAuthority)
-        {
-            ApplyOperate(operatorObject);
-            return;
-        }
-
+        // if (Object.HasStateAuthority)
+        // {
+        //     ApplyOperate(operatorObject);
+        // }
+        // else {}
+        
         RPC_Operate(operatorObject);
     }
 
-    private void ApplyOperate(NetworkObject operatorObject)
+    void ApplyOperate(NetworkObject operatorObject)
     {
         if(operatorObject == null)
         {
@@ -90,14 +83,40 @@ public class Lever : OperatableObject
         }
 
         operateState = !operateState;
+        NetworkedOperateState = !NetworkedOperateState;
         connectedObjController.OnActivate(operateState ? 1 : -1);
         StartCoroutine(OperateCooldown());
-        ResponseAction();
+        // ResponseAction();
     }
 
-    [Rpc(RpcSources.InputAuthority, RpcTargets.StateAuthority)]
-    private void RPC_Operate(NetworkObject operatorObject)
+    [Rpc(RpcSources.All, RpcTargets.All)]
+    void RPC_Operate(NetworkObject operatorObject) => ApplyOperate(operatorObject);
+
+    void OnStateChanged()
     {
-        ApplyOperate(operatorObject);
+        if (isDisposable)
+        {
+            mesh.material = meshSet[2];
+            return;
+        }
+        int index = NetworkedOperateState ? 1 : 0;
+        mesh.material = meshSet[index];
     }
+
+    public override void Operate()
+    {
+        // operateState = !operateState;
+        // connectedObjController.OnActivate(operateState ? 1 : -1);
+        // ResponseAction();
+    }
+
+    // void OnTriggerEnter(Collider other)
+    // {
+    //     // 임시 조건
+    //     if (other.CompareTag("Player") && isOperatable)
+    //     {
+    //         Operate();
+    //         StartCoroutine(OperateCooldown());
+    //     }
+    // }
 }
