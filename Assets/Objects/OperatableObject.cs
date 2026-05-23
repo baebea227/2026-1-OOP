@@ -5,7 +5,7 @@ public abstract class OperatableObject : NetworkBehaviour
 {
     protected bool isOperatable = true;
     [Networked, OnChangedRender(nameof(OnStateChanged))]
-    protected bool OperateState { get; set; }
+    protected NetworkBool OperateState { get; set; }
 
     [SerializeField] protected GameObject connectedObj;
     protected IActivatable connectedObjController;

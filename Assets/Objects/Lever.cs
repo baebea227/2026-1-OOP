@@ -6,7 +6,7 @@ public class Lever : OperatableObject
 {
     [SerializeField] float coolTimeSet;
     WaitForSeconds coolTime;
-    bool isDisposable;
+    [SerializeField] bool isDisposable;
 
     Animator anim;
 
@@ -59,6 +59,7 @@ public class Lever : OperatableObject
 
     protected override void OnStateChanged()
     {
+        anim.SetTrigger("Active");
         if (isDisposable)
         {
             mesh.material = meshSet[2];
@@ -66,6 +67,5 @@ public class Lever : OperatableObject
         }
         int index = OperateState ? 1 : 0;
         mesh.material = meshSet[index];
-        anim.SetTrigger("Active");
     }
 }
