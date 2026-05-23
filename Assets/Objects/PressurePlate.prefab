@@ -148,12 +148,10 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 771c963ad4b43a447bcef1e6c6011f79, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PressurePlate
-  operateState: 0
-  isDisposable: 0
   connectedObj: {fileID: 0}
   meshSet:
-  - {fileID: 2100000, guid: 096c60b100915c24eb0448d7b42fc9be, type: 2}
-  - {fileID: 2100000, guid: 5001bdb5c7b0158479855a3e53450735, type: 2}
+  - {fileID: 2100000, guid: 9ff60f5d16c618945931733816871485, type: 2}
+  - {fileID: 2100000, guid: c328c126c982fb54ab032896c649df3f, type: 2}
   - {fileID: 2100000, guid: 75a2ff7399978544388f02f4a0c6dbdc, type: 2}
 --- !u!114 &5649611669085139780
 MonoBehaviour:

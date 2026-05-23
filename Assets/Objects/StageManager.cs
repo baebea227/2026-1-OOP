@@ -8,6 +8,8 @@ public class StageManager : NetworkBehaviour
     int curStageIndex;
     bool stageActive;
 
+    public GameObject clearUI;
+
     void Awake()
     {
         stageActive = false;
@@ -24,9 +26,9 @@ public class StageManager : NetworkBehaviour
     void SetStage(int index)
     {
         curStageIndex = index;
-        stageList[curStageIndex].gameObject.SetActive(true);
-        stageList[curStageIndex].StageStart();
         stageActive = true;
+        stageList[curStageIndex].gameObject.SetActive(stageActive);
+        stageList[curStageIndex].StageStart();
     }
 
     void StageClearCheck()
@@ -42,8 +44,21 @@ public class StageManager : NetworkBehaviour
     {
         // 임시 클리어 액션
         stageList[curStageIndex].StageEnd();
-        stageList[curStageIndex].gameObject.SetActive(false);
+        stageActive = false;
+        // stageList[curStageIndex].gameObject.SetActive(stageActive);
         Debug.Log("Clear!!");
+        ShowClearUI();
+    }
+
+    void ShowClearUI()
+    {
+        clearUI.SetActive(true);
+        Invoke("HideClearUI", 3);
+    }
+
+    void HideClearUI()
+    {
+        clearUI.SetActive(false);
     }
 
     void Update()

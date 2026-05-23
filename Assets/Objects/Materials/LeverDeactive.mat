@@ -7,7 +7,7 @@ Material:
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_Name: Deactive
+  m_Name: LeverDeactive
   m_Shader: {fileID: 4800000, guid: 933532a4fcc9baf4fa0491de14d08ed7, type: 3}
   m_Parent: {fileID: 2100000, guid: 75a2ff7399978544388f02f4a0c6dbdc, type: 2}
   m_ModifiedSerializedProperties: 0
@@ -28,8 +28,8 @@ Material:
     m_Ints: []
     m_Floats: []
     m_Colors:
-    - _BaseColor: {r: 0.554717, g: 0.53064436, b: 0.53064436, a: 1}
-    - _Color: {r: 0.554717, g: 0.53064436, b: 0.53064436, a: 1}
+    - _BaseColor: {r: 0.4188679, g: 0.17495246, b: 0.046628654, a: 1}
+    - _Color: {r: 0.41886786, g: 0.17495242, b: 0.046628624, a: 1}
   m_BuildTextureStacks: []
   m_AllowLocking: 1
 --- !u!114 &1942203147522595551
