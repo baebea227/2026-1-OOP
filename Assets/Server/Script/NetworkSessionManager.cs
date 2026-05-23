@@ -37,6 +37,7 @@ public class NetworkSessionManager : MonoBehaviour, INetworkRunnerCallbacks
     private readonly List<SessionInfo> cachedSessions = new List<SessionInfo>();
 
     private bool isBusy = false;
+    private bool isHandlingRemoteDisconnect = false;
 
     public NetworkRunner Runner => runner;
     public IReadOnlyList<SessionInfo> CachedSessions => cachedSessions;
@@ -413,10 +414,30 @@ public class NetworkSessionManager : MonoBehaviour, INetworkRunnerCallbacks
         if (targetRunner == null)
             return 0;
 
+        if (!targetRunner.IsRunning)
+            return 0;
+
         int count = 0;
 
-        foreach (PlayerRef player in targetRunner.ActivePlayers)
-            count++;
+        try
+        {
+            foreach (PlayerRef player in targetRunner.ActivePlayers)
+                count++;
+        }
+        catch (KeyNotFoundException exception)
+        {
+            Debug.LogWarning(
+                $"[NetworkSessionManager] ActivePlayers could not be read while runner state was changing: {exception.Message}"
+            );
+            return 0;
+        }
+        catch (InvalidOperationException exception)
+        {
+            Debug.LogWarning(
+                $"[NetworkSessionManager] ActivePlayers changed while being read: {exception.Message}"
+            );
+            return 0;
+        }
 
         return count;
     }
@@ -471,14 +492,7 @@ public class NetworkSessionManager : MonoBehaviour, INetworkRunnerCallbacks
         if (runner == null)
             return 0;
 
-        int count = 0;
-
-        foreach (PlayerRef player in runner.ActivePlayers)
-        {
-            count++;
-        }
-
-        return count;
+        return CountActivePlayers(runner);
     }
 
     public bool IsHost()
@@ -540,6 +554,46 @@ public class NetworkSessionManager : MonoBehaviour, INetworkRunnerCallbacks
         SetStatus("Disconnected from server: " + reason);
         Debug.Log($"[NetworkSessionManager][Diagnostics:OnDisconnectedFromServer] reason={reason}");
         LogRunnerState("OnDisconnectedFromServer", runner);
+
+        HandleRemoteDisconnect(runner, reason);
+    }
+
+    private async void HandleRemoteDisconnect(NetworkRunner disconnectedRunner, NetDisconnectReason reason)
+    {
+        if (isHandlingRemoteDisconnect)
+            return;
+
+        if (runner != null && runner != disconnectedRunner)
+            return;
+
+        isHandlingRemoteDisconnect = true;
+        SetBusy(true);
+
+        try
+        {
+            await ResetRunnerAsync();
+
+            if (this == null)
+                return;
+
+            SetStatus("Session closed by server: " + reason);
+            OnSessionShutdownEvent?.Invoke();
+
+            if (ResolveSceneFlowManager())
+                sceneFlowManager.LoadLobbySceneLocal();
+        }
+        catch (Exception exception)
+        {
+            Debug.LogWarning("[NetworkSessionManager] Remote disconnect cleanup failed: " + exception.Message);
+        }
+        finally
+        {
+            if (this != null)
+            {
+                isHandlingRemoteDisconnect = false;
+                SetBusy(false);
+            }
+        }
     }
 
     public void OnPlayerJoined(NetworkRunner runner, PlayerRef player)

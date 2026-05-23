@@ -171,7 +171,9 @@ public class WaitingRoomManager : MonoBehaviour, INetworkRunnerCallbacks
         if (!runner.IsServer)
             return;
 
-        foreach (PlayerRef player in runner.ActivePlayers)
+        List<PlayerRef> activePlayers = GetActivePlayersSnapshot(runner, "SpawnRoomPlayerStatesIfHost");
+
+        foreach (PlayerRef player in activePlayers)
         {
             SpawnRoomPlayerStateIfNeeded(player);
         }
@@ -637,12 +639,7 @@ public class WaitingRoomManager : MonoBehaviour, INetworkRunnerCallbacks
         if (runner == null)
             return 0;
 
-        int count = 0;
-
-        foreach (PlayerRef player in runner.ActivePlayers)
-            count++;
-
-        return count;
+        return CountActivePlayers(runner);
     }
 
     /// <summary>
@@ -685,12 +682,60 @@ public class WaitingRoomManager : MonoBehaviour, INetworkRunnerCallbacks
         if (sourceRunner == null)
             return 0;
 
+        if (!sourceRunner.IsRunning)
+            return 0;
+
         int count = 0;
 
-        foreach (PlayerRef player in sourceRunner.ActivePlayers)
-            count++;
+        try
+        {
+            foreach (PlayerRef player in sourceRunner.ActivePlayers)
+                count++;
+        }
+        catch (KeyNotFoundException exception)
+        {
+            Debug.LogWarning(
+                $"[WaitingRoomManager] ActivePlayers could not be read while runner state was changing: {exception.Message}"
+            );
+            return 0;
+        }
+        catch (InvalidOperationException exception)
+        {
+            Debug.LogWarning(
+                $"[WaitingRoomManager] ActivePlayers changed while being read: {exception.Message}"
+            );
+            return 0;
+        }
 
         return count;
+    }
+
+    private List<PlayerRef> GetActivePlayersSnapshot(NetworkRunner sourceRunner, string context)
+    {
+        List<PlayerRef> players = new List<PlayerRef>();
+
+        if (sourceRunner == null || !sourceRunner.IsRunning)
+            return players;
+
+        try
+        {
+            foreach (PlayerRef player in sourceRunner.ActivePlayers)
+                players.Add(player);
+        }
+        catch (KeyNotFoundException exception)
+        {
+            Debug.LogWarning(
+                $"[WaitingRoomManager] ActivePlayers could not be read during {context}: {exception.Message}"
+            );
+        }
+        catch (InvalidOperationException exception)
+        {
+            Debug.LogWarning(
+                $"[WaitingRoomManager] ActivePlayers changed during {context}: {exception.Message}"
+            );
+        }
+
+        return players;
     }
 
     // ==============================
