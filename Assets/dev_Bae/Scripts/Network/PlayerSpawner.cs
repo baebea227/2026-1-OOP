@@ -112,8 +112,34 @@ public class PlayerSpawner : MonoBehaviour, INetworkRunnerCallbacks
 
     private void SpawnAllPlayers(NetworkRunner runner)
     {
-        foreach (PlayerRef player in runner.ActivePlayers)
+        List<PlayerRef> activePlayers = GetActivePlayersSnapshot(runner);
+
+        foreach (PlayerRef player in activePlayers)
             SpawnPlayerIfNeeded(runner, player);
+    }
+
+    private List<PlayerRef> GetActivePlayersSnapshot(NetworkRunner runner)
+    {
+        List<PlayerRef> players = new List<PlayerRef>();
+
+        if (runner == null || !runner.IsRunning)
+            return players;
+
+        try
+        {
+            foreach (PlayerRef player in runner.ActivePlayers)
+                players.Add(player);
+        }
+        catch (KeyNotFoundException exception)
+        {
+            Debug.LogWarning("[PlayerSpawner] ActivePlayers could not be read while runner state was changing: " + exception.Message);
+        }
+        catch (InvalidOperationException exception)
+        {
+            Debug.LogWarning("[PlayerSpawner] ActivePlayers changed while being read: " + exception.Message);
+        }
+
+        return players;
     }
 
     public void OnInput(NetworkRunner runner, NetworkInput input) { }
