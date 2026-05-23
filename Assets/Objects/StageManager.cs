@@ -27,13 +27,23 @@ public class StageManager : NetworkBehaviour
     {
         curStageIndex = index;
         stageActive = true;
-        stageList[curStageIndex].gameObject.SetActive(stageActive);
+
+        if (stageList != null &&
+            curStageIndex >= 0 &&
+            stageList[curStageIndex] != null)
+            {
+                stageList[curStageIndex].gameObject.SetActive(stageActive);
+        }
+
         stageList[curStageIndex].StageStart();
     }
 
     void StageClearCheck()
     {
-        if (stageList[curStageIndex].IsCleared)
+        if (stageList != null &&
+        curStageIndex >= 0 &&
+        stageList[curStageIndex] != null &&
+        stageList[curStageIndex].IsCleared)
         {
             RPC_ClearProcess();
         }
