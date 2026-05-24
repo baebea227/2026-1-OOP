@@ -1,0 +1,43 @@
+@startuml
+title Use Case 1 - Player Movement and View Control
+
+actor PlayerActor as Actor
+participant "PlayerInput" as Input
+participant "Player" as Player
+participant "MovementController" as Movement
+participant "PlayerAnimator" as Animator
+
+Actor -> Input: move / look / sprint / jump input
+activate Input
+
+Input -> Input: collectInput(): InputCommand
+Input -> Player: move()
+deactivate Input
+
+activate Player
+Player -> Movement: applyMovement(input: Vector2)
+activate Movement
+Movement -> Movement: calculate direction by cameraAngle
+Movement -> Movement: apply rotation and movement
+
+alt jump input && grounded
+  Player -> Movement: applyJump()
+end
+
+Movement -> Player: update moveState
+deactivate Movement
+
+Player -> Animator: updateMovement(state: MoveState)
+activate Animator
+Animator -> Animator: apply animation parameters
+
+alt jump started
+  Animator -> Animator: playJump()
+else falling
+  Animator -> Animator: playFall()
+end
+
+deactivate Animator
+deactivate Player
+
+@enduml

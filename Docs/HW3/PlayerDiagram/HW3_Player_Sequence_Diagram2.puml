@@ -1,0 +1,61 @@
+@startuml
+title Use Case 2 - Grabbable Object Pickup / Drop / Throw
+
+actor PlayerActor as Actor
+participant "PlayerInput" as Input
+participant "Player" as Player
+participant "InteractionController" as Interaction
+participant "GrabbableObject" as Object
+
+Actor -> Input: interact / throw input
+activate Input
+Input -> Input: collectInput(): InputCommand
+Input -> Player: interact()
+deactivate Input
+
+activate Player
+Player -> Interaction: findTarget(): GrabbableObject
+activate Interaction
+
+alt interact input
+  alt Player.heldObject exists
+    Interaction -> Object: beDropped()
+    activate Object
+    Object -> Object: clear holder
+    Object -> Object: restore physicsState
+    deactivate Object
+    Interaction -> Player: heldObject = null
+
+  else valid target found
+    Interaction -> Object: bePickedUp(holder: Player)
+    activate Object
+    Object -> Object: set holder
+    Object -> Object: disable physics while held
+    deactivate Object
+    Interaction -> Player: heldObject = target
+
+  else no valid target
+    Interaction -> Interaction: ignore input
+  end
+end
+
+alt throw input
+  alt Player.heldObject exists
+    Interaction -> Interaction: calculate aimDirection
+    Interaction -> Object: beThrown(direction: Vector3)
+    activate Object
+    Object -> Object: clear holder
+    Object -> Object: restore physicsState
+    Object -> Object: apply throw velocity
+    deactivate Object
+    Interaction -> Player: heldObject = null
+
+  else no held object
+    Interaction -> Interaction: ignore input
+  end
+end
+
+deactivate Interaction
+deactivate Player
+
+@enduml

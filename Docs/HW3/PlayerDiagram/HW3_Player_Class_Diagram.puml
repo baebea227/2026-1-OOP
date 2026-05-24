@@ -1,0 +1,146 @@
+@startuml
+title Player Class Diagram
+
+skinparam classAttributeIconSize 0
+
+class Player <<Entity>> {
+  GRASP: High Cohesion
+  --
+  - inputAuthority
+  - playerObject
+  --
+  + move()
+  + jump()
+  + grab()
+  + throwObject()
+}
+
+class PlayerInputHandler <<Controller>> {
+  GRASP: Controller, Low Coupling
+  --
+  - moveAction
+  - lookAction
+  - sprintAction
+  - jumpAction
+  - grabAction
+  - throwAction
+  - localYaw
+  - localPitch
+  --
+  + Render()
+  + OnInput()
+  - ClearBufferedButtonInputs()
+}
+
+class PlayerNetworkInput <<Value Object>> {
+  GRASP: Information Expert
+  --
+  + moveInput
+  + yaw
+  + pitch
+  + isSprinting
+  + isJumping
+  + isGrab
+  + isInteract
+  + isThrow
+}
+
+class PlayerMovement <<Controller>> {
+  GRASP: Controller, Information Expert, High Cohesion
+  --
+  - walkSpeed
+  - runSpeed
+  - sprintSpeed
+  - jumpHeight
+  - pushForce
+  + MoveInput
+  + IsSprinting
+  + IsJumping
+  + IsFalling
+  + CameraYaw
+  + CameraPitch
+  --
+  + FixedUpdateNetwork()
+  - ResolvePushProbe()
+  - TryFindPushable()
+  - RemoveBlockedPushComponent()
+}
+
+class PlayerGrabHandler <<Controller>> {
+  GRASP: Controller, Low Coupling
+  --
+  - grabRange
+  - throwSpeed
+  - holdPoint
+  - cameraTransform
+  + HeldGrabbable
+  --
+  + FixedUpdateNetwork()
+  - FindGrabCandidate()
+  - RequestToggleGrab()
+  - RequestThrow()
+  - TryInteract()
+}
+
+class GrabbableObject <<Entity>> {
+  GRASP: Information Expert, High Cohesion
+  --
+  - HolderObject
+  - releaseBlockMask
+  - playerBlockMask
+  - physicsDisabledForHold
+  --
+  + TryPickup()
+  + TryDrop()
+  + TryThrow()
+  + OnPush()
+  - ApplyPickup()
+  - ApplyDrop()
+  - ApplyThrow()
+}
+
+class HeavyObject <<Entity>> {
+  GRASP: Information Expert, High Cohesion
+  --
+  - requiredPushers
+  - scriptedMoveSpeed
+  - pushSamples
+  - activeDirection
+  - activeMoveUntil
+  --
+  + OnPush()
+  + FixedUpdateNetwork()
+  - TryRecordPush()
+  - TryGetCooperativePush()
+  - ApplyScriptedMove()
+}
+
+class PlayerAnimatorController <<Controller>> {
+  GRASP: Controller, Low Coupling
+  --
+  - animator
+  - movement
+  - prevIsJumping
+  - prevIsFalling
+  --
+  + Render()
+}
+
+Player "1" *-- "1" PlayerInputHandler
+Player "1" *-- "1" PlayerMovement
+Player "1" *-- "1" PlayerGrabHandler
+Player "1" *-- "1" PlayerAnimatorController
+
+PlayerInputHandler ..> PlayerNetworkInput
+PlayerMovement ..> PlayerNetworkInput
+PlayerGrabHandler ..> PlayerNetworkInput
+
+PlayerGrabHandler "1" --> "0..1" GrabbableObject
+GrabbableObject "0..1" --> "1" Player
+
+PlayerMovement "1..2" --> "0..1" HeavyObject
+HeavyObject "1" --> "0..2" Player
+
+PlayerAnimatorController ..> PlayerMovement
+
+@enduml

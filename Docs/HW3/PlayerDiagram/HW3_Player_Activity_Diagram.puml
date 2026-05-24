@@ -1,0 +1,59 @@
+@startuml
+title Player Activity Diagram
+
+start
+
+:플레이어 스폰 및 조작 준비;
+
+repeat
+  if (ESC 키 입력?) then (예)
+    if (설정 메뉴가 열려 있음?) then (예)
+      :설정 메뉴 닫기;
+      :게임 조작 상태 복구;
+    else (아니오)
+      :설정 메뉴 열기;
+      :게임 조작 입력 차단;
+
+      if (게임 나가기 선택?) then (예)
+        :세션 종료;
+        :로비로 이동;
+        stop
+      endif
+    endif
+  endif
+
+  if (게임 조작 차단 상태?) then (예)
+    :입력 무시;
+  else (아니오)
+    :이동 및 시점 입력 처리;
+    :걷기 / 달리기 / 점프 상태 반영;
+
+    if (잡기 또는 던지기 입력?) then (예)
+      :대상 오브젝트 탐색;
+
+      if (유효한 대상?) then (예)
+        :오브젝트 잡기 / 놓기 / 던지기 처리;
+      else (아니오)
+        :상호작용 무시;
+      endif
+    endif
+
+    if (무거운 오브젝트를 미는 중?) then (예)
+      :플레이어들의 밀기 방향 확인;
+
+      if (협동 조건 충족?) then (예)
+        :무거운 오브젝트 이동;
+      else (아니오)
+        :오브젝트 이동 대기;
+      endif
+    endif
+
+    :애니메이션 및 네트워크 상태 갱신;
+  endif
+
+repeat while (스테이지 진행 중?) is (예)
+
+:스테이지 종료;
+stop
+
+@enduml

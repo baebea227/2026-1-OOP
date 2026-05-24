@@ -1,0 +1,35 @@
+@startuml HW3_SSD_Integrated
+title 시스템 시퀸스 다이어그램
+
+skinparam defaultFontName "Malgun Gothic"
+skinparam shadowing false
+
+actor "플레이어 1" as Player1
+actor "플레이어 2" as Player2
+participant "Game System" as System
+
+Player1 -> System: createRoom(roomName, maxPlayers, isPublic)
+Player2 -> System: joinRoom(roomId)
+Player1 -> System: sendChatMessage(message)
+System --> Player1: enterWaitingRoom(roomId) or showCreateRoomError(reason)
+System --> Player2: showWaitingRoom(roomInfo) or joinRoomRejected(reason)
+
+Player1 -> System: setReady(playerId, isReady)
+Player2 -> System: setReady(playerId, isReady)
+Player1 -> System: requestStartStage()
+Player1 -> System: enterStage(stageId)
+Player2 -> System: enterStage(stageId)
+System --> Player1: loadStage(stageId), stageReady(stageId) or startStageRejected(reason)
+System --> Player2: loadStage(stageId), stageReady(stageId) or returnToLobbyWithError(reason)
+
+Player1 -> System: inputMovement(), requestGrab(), operateLever(), toggleStageSettingsMenu()
+Player2 -> System: inputMovement(), pushObject(), operateButton(), stepOnPressurePlate()
+System --> Player1: updateStageState(result)
+System --> Player2: updateStageState(result)
+
+Player1 -> System: enterExitArea()
+Player2 -> System: enterExitArea()
+System --> Player1: stageCleared() or waitForPartner()
+System --> Player2: stageCleared() or waitForPartner()
+
+@enduml
