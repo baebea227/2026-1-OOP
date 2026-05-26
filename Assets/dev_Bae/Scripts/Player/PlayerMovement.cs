@@ -7,6 +7,7 @@ public class PlayerMovement : NetworkBehaviour
     [Header("Push Settings")]
     public float pushForce = 3f;
     [SerializeField] private LayerMask pushProbeMask = CollisionPolicyBootstrap.PushableMask;
+    [SerializeField] private LayerMask heavyPushProbeMask = 1 << CollisionPolicyBootstrap.HeavyPuzzleLayer;
     [SerializeField] private float pushProbeRadius = 0.25f;
     [SerializeField] private float pushProbeDistance = 0.45f;
     [Range(0f, 1f)]
@@ -46,10 +47,16 @@ public class PlayerMovement : NetworkBehaviour
         characterController = GetComponent<CharacterController>();
         CollisionPolicyBootstrap.ApplyLayerToColliderOwners(gameObject, CollisionPolicyBootstrap.PlayerBodyLayer);
 
+        int lightPushableMask = CollisionPolicyBootstrap.PushableMask & ~(1 << CollisionPolicyBootstrap.HeavyPuzzleLayer);
         if (pushProbeMask.value == 0)
-            pushProbeMask = CollisionPolicyBootstrap.PushableMask;
+            pushProbeMask = lightPushableMask;
         else
-            pushProbeMask = pushProbeMask.value | CollisionPolicyBootstrap.PushableMask;
+            pushProbeMask = (pushProbeMask.value | lightPushableMask) & ~(1 << CollisionPolicyBootstrap.HeavyPuzzleLayer);
+
+        if (heavyPushProbeMask.value == 0)
+            heavyPushProbeMask = 1 << CollisionPolicyBootstrap.HeavyPuzzleLayer;
+        else
+            heavyPushProbeMask = heavyPushProbeMask.value | (1 << CollisionPolicyBootstrap.HeavyPuzzleLayer);
     }
 
     public override void Spawned()
@@ -76,9 +83,11 @@ public class PlayerMovement : NetworkBehaviour
         if (jumping)
             cc.Jump(overrideImpulse: Mathf.Sqrt(jumpHeight * -2f * gravity));
 
-        if (sprinting)                              cc.maxSpeed = sprintSpeed;
-        else if (input.moveInput.magnitude > 0.5f) cc.maxSpeed = runSpeed;
-        else if (input.moveInput.magnitude > 0f)   cc.maxSpeed = walkSpeed;
+        float desiredMaxSpeed = 0f;
+        if (sprinting)                              desiredMaxSpeed = sprintSpeed;
+        else if (input.moveInput.magnitude > 0.5f) desiredMaxSpeed = runSpeed;
+        else if (input.moveInput.magnitude > 0f)   desiredMaxSpeed = walkSpeed;
+        cc.maxSpeed = desiredMaxSpeed;
 
         Quaternion cameraYaw = Quaternion.Euler(0f, input.yaw, 0f);
         Vector3 right   = cameraYaw * Vector3.right;
@@ -108,7 +117,14 @@ public class PlayerMovement : NetworkBehaviour
 
         Yaw = transform.eulerAngles.y;
 
-        Vector3 resolvedMoveDir = ResolvePushProbe(moveDir, out bool isBlockingHeavyPush, out Vector3 heavyBlockNormal);
+        Vector3 resolvedMoveDir = ResolvePushProbe(
+            moveDir,
+            out bool isBlockingHeavyPush,
+            out Vector3 heavyBlockNormal,
+            out float resolvedMoveSpeedScale);
+        if (isBlockingHeavyPush)
+            cc.maxSpeed = desiredMaxSpeed * resolvedMoveSpeedScale;
+
         float previousY = transform.position.y;
         float previousStepOffset = characterController != null ? characterController.stepOffset : 0f;
         if (isBlockingHeavyPush && characterController != null)
@@ -125,28 +141,104 @@ public class PlayerMovement : NetworkBehaviour
         IsFalling = !cc.Grounded && cc.Velocity.y < 0f;
     }
 
-    private Vector3 ResolvePushProbe(Vector3 moveDir, out bool isBlockingHeavyPush, out Vector3 heavyBlockNormal)
+    private Vector3 ResolvePushProbe(
+        Vector3 moveDir,
+        out bool isBlockingHeavyPush,
+        out Vector3 heavyBlockNormal,
+        out float resolvedMoveSpeedScale)
     {
         isBlockingHeavyPush = false;
         heavyBlockNormal = Vector3.zero;
+        resolvedMoveSpeedScale = 1f;
 
         if (moveDir.sqrMagnitude <= 0.0001f)
             return moveDir;
 
-        if (!TryFindPushable(moveDir, out RaycastHit hit, out IPushable pushable))
-            return moveDir;
+        if (TryFindHeavyObject(moveDir, out RaycastHit heavyHit, out HeavyObject heavyObject))
+        {
+            bool hasPushIntent = heavyObject.TryResolvePushIntent(
+                transform.position,
+                moveDir,
+                out int directionIndex,
+                out Vector3 blockNormal);
 
-        if (HasInputAuthority)
+            if (hasPushIntent && HasInputAuthority)
+                heavyObject.SubmitPushIntent(directionIndex, Object.InputAuthority);
+
+            if (blockNormal.sqrMagnitude <= 0.0001f)
+                blockNormal = heavyHit.normal;
+
+            Vector3 blockedMoveDir = RemoveBlockedPushComponent(
+                moveDir,
+                blockNormal,
+                out isBlockingHeavyPush,
+                out heavyBlockNormal);
+
+            if (isBlockingHeavyPush)
+                resolvedMoveSpeedScale = GetResolvedMoveSpeedScale(moveDir, blockedMoveDir);
+
+            return blockedMoveDir;
+        }
+
+        if (TryFindPushable(moveDir, out _, out IPushable pushable) && HasInputAuthority)
         {
             Vector3 force = moveDir.normalized * pushForce;
             force.y = 0f;
             pushable.OnPush(force, Object.InputAuthority);
         }
 
-        if (hit.collider != null && hit.collider.gameObject.layer == CollisionPolicyBootstrap.HeavyPuzzleLayer)
-            return RemoveBlockedPushComponent(moveDir, hit.normal, out isBlockingHeavyPush, out heavyBlockNormal);
-
         return moveDir;
+    }
+
+    private float GetResolvedMoveSpeedScale(Vector3 originalMoveDir, Vector3 resolvedMoveDir)
+    {
+        float originalMagnitude = originalMoveDir.magnitude;
+        if (originalMagnitude <= 0.0001f)
+            return 0f;
+
+        return Mathf.Clamp01(resolvedMoveDir.magnitude / originalMagnitude);
+    }
+
+    private bool TryFindHeavyObject(Vector3 moveDir, out RaycastHit nearestHit, out HeavyObject nearestHeavyObject)
+    {
+        nearestHit = default;
+        nearestHeavyObject = null;
+
+        if (heavyPushProbeMask.value == 0 || pushProbeDistance <= 0f)
+            return false;
+
+        Vector3 direction = moveDir;
+        direction.y = 0f;
+        if (direction.sqrMagnitude <= 0.0001f)
+            return false;
+
+        direction.Normalize();
+        int hitCount = Runner.GetPhysicsScene().SphereCast(
+            GetPushProbeOrigin(),
+            GetPushProbeRadius(),
+            direction,
+            pushProbeHits,
+            pushProbeDistance,
+            heavyPushProbeMask.value,
+            QueryTriggerInteraction.Ignore);
+
+        float nearestDistance = float.PositiveInfinity;
+        for (int i = 0; i < hitCount; i++)
+        {
+            RaycastHit hit = pushProbeHits[i];
+            if (hit.collider == null || hit.distance >= nearestDistance)
+                continue;
+
+            HeavyObject heavyObject = hit.collider.GetComponentInParent<HeavyObject>();
+            if (heavyObject == null)
+                continue;
+
+            nearestHit = hit;
+            nearestHeavyObject = heavyObject;
+            nearestDistance = hit.distance;
+        }
+
+        return nearestHeavyObject != null;
     }
 
     private bool TryFindPushable(Vector3 moveDir, out RaycastHit nearestHit, out IPushable nearestPushable)
@@ -177,6 +269,9 @@ public class PlayerMovement : NetworkBehaviour
         {
             RaycastHit hit = pushProbeHits[i];
             if (hit.collider == null)
+                continue;
+
+            if (hit.collider.gameObject.layer == CollisionPolicyBootstrap.HeavyPuzzleLayer)
                 continue;
 
             IPushable pushable = hit.collider.GetComponentInParent<IPushable>();
@@ -321,7 +416,8 @@ public class PlayerMovement : NetworkBehaviour
     private void OnControllerColliderHit(ControllerColliderHit hit)
     {
         if (!HasInputAuthority) return;
-        if (hit.collider.gameObject.layer == CollisionPolicyBootstrap.InteractableNoBodyLayer)
+        if (hit.collider.gameObject.layer == CollisionPolicyBootstrap.InteractableNoBodyLayer ||
+            hit.collider.gameObject.layer == CollisionPolicyBootstrap.HeavyPuzzleLayer)
         {
             return;
         }

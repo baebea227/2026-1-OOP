@@ -38,6 +38,8 @@ public class PlayerSplitScreenCamera : NetworkBehaviour
     public float followSmoothTime = 0.04f;
     public float collisionRadius = 0.25f;
     public float collisionPadding = 0.1f;
+    [SerializeField] private LayerMask cameraCollisionMask =
+        Physics.DefaultRaycastLayers & ~(CollisionPolicyBootstrap.PlayerBodyMask | CollisionPolicyBootstrap.PushableMask);
 
     [Header("Split Screen UI")]
     public bool showSplitSeparator = true;
@@ -93,6 +95,10 @@ public class PlayerSplitScreenCamera : NetworkBehaviour
         cam = GetComponent<Camera>();
         target = GetComponentInParent<NetworkObject>()?.transform;
         originalParent = transform.parent;
+
+        if (cameraCollisionMask.value == 0)
+            cameraCollisionMask = Physics.DefaultRaycastLayers &
+                ~(CollisionPolicyBootstrap.PlayerBodyMask | CollisionPolicyBootstrap.PushableMask);
     }
 
     public override void Spawned()
@@ -665,7 +671,7 @@ public class PlayerSplitScreenCamera : NetworkBehaviour
                 direction,
                 cameraCollisionHits,
                 targetDistance,
-                Physics.DefaultRaycastLayers,
+                cameraCollisionMask.value,
                 QueryTriggerInteraction.Ignore);
 
             for (int i = 0; i < hitCount; i++)
