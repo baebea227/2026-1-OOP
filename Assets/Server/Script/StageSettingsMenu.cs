@@ -24,6 +24,8 @@ public class StageSettingsMenu : MonoBehaviour
     private bool previousCursorVisible;
     private bool previousPlayerInputEnabled;
     private bool previousCrosshairVisible;
+    private bool previousSplitSeparatorVisible;
+    private bool previousSplitSeparatorDimmed;
     private bool hadPlayerInput;
     private bool hadCamera;
     private bool isOpen;
@@ -236,20 +238,28 @@ public class StageSettingsMenu : MonoBehaviour
         if (cachedCamera != null)
         {
             previousCrosshairVisible = cachedCamera.showCrosshair;
+            previousSplitSeparatorVisible = cachedCamera.showSplitSeparator;
+            previousSplitSeparatorDimmed = cachedCamera.IsSplitSeparatorDimmed;
             cachedCamera.showCrosshair = false;
+            cachedCamera.showSplitSeparator = true;
+            cachedCamera.SetSplitSeparatorDimmed(true);
         }
 
         Cursor.lockState = CursorLockMode.None;
         Cursor.visible = true;
     }
 
-    private void RestoreGameplayInput(bool restoreCursor)
+    private void RestoreGameplayInput(bool restoreCursor, bool restoreCameraUi = true)
     {
         if (hadPlayerInput && cachedPlayerInput != null)
             cachedPlayerInput.enabled = previousPlayerInputEnabled;
 
-        if (hadCamera && cachedCamera != null)
+        if (restoreCameraUi && hadCamera && cachedCamera != null)
+        {
             cachedCamera.showCrosshair = previousCrosshairVisible;
+            cachedCamera.showSplitSeparator = previousSplitSeparatorVisible;
+            cachedCamera.SetSplitSeparatorDimmed(previousSplitSeparatorDimmed);
+        }
 
         PlayerInputHandler.IsGameplayInputBlocked = false;
 
@@ -310,7 +320,7 @@ public class StageSettingsMenu : MonoBehaviour
 
         if (isOpen)
         {
-            RestoreGameplayInput(false);
+            RestoreGameplayInput(false, false);
             isOpen = false;
         }
 

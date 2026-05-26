@@ -15,6 +15,10 @@ public class PlayerGrabHandler : NetworkBehaviour
     public Transform cameraTransform;
 
     public Transform HoldPoint => holdPoint;
+    public bool ShowInteractHint => showInteractHint;
+    public bool ShowGrabHint => showGrabHint;
+    public bool ShowThrowHint => showThrowHint;
+    public string GrabHintAction => grabHintAction;
 
     [Networked] public NetworkObject HeldGrabbable { get; set; }
     [Networked] private Vector3 NetworkedAimDirection { get; set; }
@@ -22,6 +26,10 @@ public class PlayerGrabHandler : NetworkBehaviour
     private readonly RaycastHit[] raycastHits = new RaycastHit[32];
     private Collider[] ownerColliders;
     private PlayerInputHandler inputHandler;
+    private bool showInteractHint;
+    private bool showGrabHint;
+    private bool showThrowHint;
+    private string grabHintAction;
 
     void Awake()
     {
@@ -49,6 +57,7 @@ public class PlayerGrabHandler : NetworkBehaviour
     public override void Render()
     {
         UpdateHoldPoint(GetRenderAimDirection());
+        UpdateControlHintCache();
     }
 
     public override void FixedUpdateNetwork()
@@ -197,6 +206,36 @@ public class PlayerGrabHandler : NetworkBehaviour
         lever.TryOperate(Object);
     }
 
+    private void UpdateControlHintCache()
+    {
+        ClearControlHintCache();
+
+        if (!HasInputAuthority || PlayerInputHandler.IsGameplayInputBlocked || Runner == null)
+            return;
+
+        showInteractHint = TryFindLeverHit(out _);
+
+        if (HeldGrabbable != null)
+        {
+            showGrabHint = true;
+            showThrowHint = true;
+            grabHintAction = "Drop";
+            return;
+        }
+
+        showGrabHint = TryFindGrabbableHit(out _);
+        if (showGrabHint)
+            grabHintAction = "Grab";
+    }
+
+    private void ClearControlHintCache()
+    {
+        showInteractHint = false;
+        showGrabHint = false;
+        showThrowHint = false;
+        grabHintAction = null;
+    }
+
     [Rpc(RpcSources.InputAuthority, RpcTargets.StateAuthority)]
     private void RPC_RequestToggleGrab(NetworkObject candidate)
     {
@@ -314,7 +353,7 @@ public class PlayerGrabHandler : NetworkBehaviour
     private bool TryCollectCameraHits(out int hitCount)
     {
         hitCount = 0;
-        if (cameraTransform == null)
+        if (cameraTransform == null || Runner == null)
             return false;
 
         Vector3 reachOrigin = GetReachOrigin();
