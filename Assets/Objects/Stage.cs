@@ -10,7 +10,6 @@ public class Stage : NetworkBehaviour
 
     void Awake()
     {
-        IsCleared = false;
         isCurStage = false;
     }
 

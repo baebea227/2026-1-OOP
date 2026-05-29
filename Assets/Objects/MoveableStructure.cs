@@ -17,8 +17,14 @@ public class MoveableStructure : NetworkBehaviour, IActivatable
     [SerializeField] Transform posA;
     [SerializeField] Transform posB;
 
+    Coroutine coroutine;
+    bool applyMove;
+
     void Awake()
     {
+        curMoveTime = 0;
+        applyMove = false;
+
         IsActive = firstState;
         curTriggerCnt = firstState ? triggerCnt : 0;
         transform.position = posA.position;
@@ -68,7 +74,13 @@ public class MoveableStructure : NetworkBehaviour, IActivatable
         IsActive = true;
         startPos = transform;
         endPos = posB;
-        StartCoroutine(Move());
+        // if(coroutine != null)
+        // {
+        //     StopCoroutine(coroutine);
+        // }
+        // coroutine = StartCoroutine(Move());
+        applyMove = true;
+        curMoveTime = 0;
     }
 
     public void Deactivate()
@@ -76,7 +88,21 @@ public class MoveableStructure : NetworkBehaviour, IActivatable
         IsActive = false;
         startPos = transform;
         endPos = posA;
-        StartCoroutine(Move());
+        // if(coroutine != null)
+        // {
+        //     StopCoroutine(coroutine);
+        // }
+        // coroutine = StartCoroutine(Move());
+        applyMove = true;
+        curMoveTime = 0;
+    }
+
+    void Update()
+    {
+        if (applyMove)
+        {
+            Move2();
+        }
     }
 
     IEnumerator Move()
@@ -90,6 +116,18 @@ public class MoveableStructure : NetworkBehaviour, IActivatable
             transform.position = Vector3.Lerp(startPos.position, endPos.position, curMoveTime / moveTime);
 
             yield return null;
+        }
+    }
+
+    void Move2()
+    {
+        curMoveTime += Time.deltaTime;
+
+        transform.position = Vector3.Lerp(startPos.position, endPos.position, curMoveTime / moveTime);
+
+        if(curMoveTime >= moveTime)
+        {
+            applyMove = false;
         }
     }
 }

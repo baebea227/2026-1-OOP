@@ -7,6 +7,7 @@ public class Lever : OperatableObject
     [SerializeField] float coolTimeSet;
     WaitForSeconds coolTime;
     [SerializeField] bool isDisposable;
+    bool operateState;
 
     Animator anim;
 
@@ -16,6 +17,7 @@ public class Lever : OperatableObject
 
         anim = GetComponent<Animator>();
         coolTime = new WaitForSeconds(coolTimeSet);
+        operateState = false;
     }
 
     IEnumerator OperateCooldown()
@@ -49,7 +51,8 @@ public class Lever : OperatableObject
         }
 
         OperateState = !OperateState;
-        connectedObjController.OnActivate(OperateState ? 1 : -1);
+        operateState = !operateState;
+        connectedObjController.OnActivate(operateState ? 1 : -1);
         StartCoroutine(OperateCooldown());
         // OnStateChanged();
     }
