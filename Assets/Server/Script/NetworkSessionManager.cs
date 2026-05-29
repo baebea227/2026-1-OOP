@@ -9,6 +9,8 @@ using Fusion.Addons.Physics;
 
 public class NetworkSessionManager : MonoBehaviour, INetworkRunnerCallbacks
 {
+    private const string LobbySceneName = "LobbyScene";
+
     [Header("Fusion")]
     public static NetworkSessionManager Instance { get; private set; }
     [SerializeField] private NetworkRunner runnerPrefab;
@@ -18,6 +20,8 @@ public class NetworkSessionManager : MonoBehaviour, INetworkRunnerCallbacks
 
     [Header("Session Setting")]
     [SerializeField] private string lobbyName = "MainLobby";
+    [Min(1)]
+    [Tooltip("Room capacity. The game starts when this many players are ready.")]
     [SerializeField] private int maxPlayers = 2;
     [SerializeField] private SceneFlowManager sceneFlowManager;
 
@@ -37,11 +41,13 @@ public class NetworkSessionManager : MonoBehaviour, INetworkRunnerCallbacks
     private readonly List<SessionInfo> cachedSessions = new List<SessionInfo>();
 
     private bool isBusy = false;
-    private bool isHandlingRemoteDisconnect = false;
+    private bool isSessionActive = false;
+    private bool isHandlingRemoteSessionEnd = false;
 
     public NetworkRunner Runner => runner;
     public IReadOnlyList<SessionInfo> CachedSessions => cachedSessions;
     public bool IsBusy => isBusy;
+    public int MaxPlayers => GetConfiguredMaxPlayers();
 
     private void Awake()
     {
@@ -239,7 +245,9 @@ public class NetworkSessionManager : MonoBehaviour, INetworkRunnerCallbacks
         }
 
         SetBusy(true);
-        Debug.Log($"[NetworkSessionManager][Diagnostics:StartSessionBegin] mode={gameMode}, session={sessionName}, lobby={lobbyName}, maxPlayers={maxPlayers}");
+        int configuredMaxPlayers = GetConfiguredMaxPlayers();
+
+        Debug.Log($"[NetworkSessionManager][Diagnostics:StartSessionBegin] mode={gameMode}, session={sessionName}, lobby={lobbyName}, maxPlayers={configuredMaxPlayers}");
 
         try
         {
@@ -265,7 +273,7 @@ public class NetworkSessionManager : MonoBehaviour, INetworkRunnerCallbacks
 
                 CustomLobbyName = lobbyName,
 
-                PlayerCount = maxPlayers,
+                PlayerCount = configuredMaxPlayers,
 
                 IsOpen = true,
                 IsVisible = true,
@@ -292,6 +300,8 @@ public class NetworkSessionManager : MonoBehaviour, INetworkRunnerCallbacks
 
             if (result.Ok)
             {
+                isSessionActive = true;
+
                 if (gameMode == GameMode.Host)
                     SetStatus($"Room created successfully: {sessionName}");
                 else
@@ -362,6 +372,16 @@ public class NetworkSessionManager : MonoBehaviour, INetworkRunnerCallbacks
             return "";
 
         return sessionName.Trim().ToUpper();
+    }
+
+    public void ConfigureMaxPlayers(int playerCount)
+    {
+        maxPlayers = Mathf.Max(1, playerCount);
+    }
+
+    private int GetConfiguredMaxPlayers()
+    {
+        return Mathf.Max(1, maxPlayers);
     }
 
     private void SetStatus(string message)
@@ -447,8 +467,10 @@ public class NetworkSessionManager : MonoBehaviour, INetworkRunnerCallbacks
         return count;
     }
 
-    private async Task ResetRunnerAsync()
+    private async Task ResetRunnerAsync(bool shutdownRunner = true)
     {
+        isSessionActive = false;
+
         NetworkRunner oldRunner = runner;
         GameObject oldRunnerObject = runnerObject;
 
@@ -464,7 +486,7 @@ public class NetworkSessionManager : MonoBehaviour, INetworkRunnerCallbacks
 
             try
             {
-                if (oldRunner.IsRunning)
+                if (shutdownRunner && oldRunner.IsRunning)
                 {
                     await oldRunner.Shutdown(false);
                 }
@@ -560,32 +582,31 @@ public class NetworkSessionManager : MonoBehaviour, INetworkRunnerCallbacks
         Debug.Log($"[NetworkSessionManager][Diagnostics:OnDisconnectedFromServer] reason={reason}");
         LogRunnerState("OnDisconnectedFromServer", runner);
 
-        HandleRemoteDisconnect(runner, reason);
+        HandleRemoteSessionEnd(runner, "server disconnect: " + reason);
     }
 
-    private async void HandleRemoteDisconnect(NetworkRunner disconnectedRunner, NetDisconnectReason reason)
+    private async void HandleRemoteSessionEnd(NetworkRunner endedRunner, string reason, bool shutdownRunner = true)
     {
-        if (isHandlingRemoteDisconnect)
+        if (isHandlingRemoteSessionEnd)
             return;
 
-        if (runner != null && runner != disconnectedRunner)
+        if (runner != null && runner != endedRunner)
             return;
 
-        isHandlingRemoteDisconnect = true;
+        isHandlingRemoteSessionEnd = true;
         SetBusy(true);
 
         try
         {
-            await ResetRunnerAsync();
+            await ResetRunnerAsync(shutdownRunner);
 
             if (this == null)
                 return;
 
-            SetStatus("Session closed by server: " + reason);
+            SetStatus("Session closed by host: " + reason);
             OnSessionShutdownEvent?.Invoke();
 
-            if (ResolveSceneFlowManager())
-                sceneFlowManager.LoadLobbySceneLocal();
+            LoadLobbySceneAfterSessionEnd();
         }
         catch (Exception exception)
         {
@@ -595,17 +616,34 @@ public class NetworkSessionManager : MonoBehaviour, INetworkRunnerCallbacks
         {
             if (this != null)
             {
-                isHandlingRemoteDisconnect = false;
+                isHandlingRemoteSessionEnd = false;
                 SetBusy(false);
             }
         }
+    }
+
+    private void LoadLobbySceneAfterSessionEnd()
+    {
+        if (ResolveSceneFlowManager())
+        {
+            sceneFlowManager.LoadLobbySceneLocal();
+            return;
+        }
+
+        if (Application.CanStreamedLevelBeLoaded(LobbySceneName))
+        {
+            SceneManager.LoadScene(LobbySceneName);
+            return;
+        }
+
+        SceneManager.LoadScene(0);
     }
 
     public void OnPlayerJoined(NetworkRunner runner, PlayerRef player)
     {
         int currentCount = GetCurrentPlayerCount();
 
-        SetStatus($"Player joined: {player} / Current players: {currentCount}/{maxPlayers}");
+        SetStatus($"Player joined: {player} / Current players: {currentCount}/{GetConfiguredMaxPlayers()}");
         LogRunnerState($"OnPlayerJoined player={player}", runner);
 
         OnPlayerJoinedEvent?.Invoke(player);
@@ -615,7 +653,7 @@ public class NetworkSessionManager : MonoBehaviour, INetworkRunnerCallbacks
     {
         int currentCount = GetCurrentPlayerCount();
 
-        SetStatus($"Player left: {player} / Current players: {currentCount}/{maxPlayers}");
+        SetStatus($"Player left: {player} / Current players: {currentCount}/{GetConfiguredMaxPlayers()}");
         LogRunnerState($"OnPlayerLeft player={player}", runner);
 
         OnPlayerLeftEvent?.Invoke(player);
@@ -630,8 +668,8 @@ public class NetworkSessionManager : MonoBehaviour, INetworkRunnerCallbacks
         if (runner != null && runner == shutdownRunner)
             runner.ProvideInput = false;
 
-        // 여기서는 이벤트 호출하지 않음.
-        // LeaveSession 또는 StartSession 실패 처리 쪽에서 직접 처리하게 둔다.
+        if (isSessionActive)
+            HandleRemoteSessionEnd(shutdownRunner, "runner shutdown: " + shutdownReason, false);
     }
 
     public void OnConnectRequest(NetworkRunner runner, NetworkRunnerCallbackArgs.ConnectRequest request, byte[] token)
