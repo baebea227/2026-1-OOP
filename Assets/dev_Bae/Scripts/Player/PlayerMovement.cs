@@ -12,6 +12,8 @@ public class PlayerMovement : NetworkBehaviour
     [SerializeField] private float pushProbeDistance = 0.45f;
     [Range(0f, 1f)]
     [SerializeField] private float blockedPushSlowdown = 0f;
+    [SerializeField, Range(0f, 1f)] private float pushingSpeedMultiplier = 0.75f;
+    [SerializeField, Range(0f, 1f)] private float pushingAnimationInputScale = 0.5f;
 
     [Header("Movement Settings")]
     public float walkSpeed   = 2f;
@@ -35,6 +37,7 @@ public class PlayerMovement : NetworkBehaviour
     [Networked] public Vector2 MoveInput       { get; set; }
     [Networked] public NetworkBool IsSprinting { get; set; }
     [Networked] public NetworkBool IsJumping   { get; set; }
+    [Networked] public NetworkBool IsPushing   { get; set; }
     [Networked] public float CameraYaw         { get; private set; }
     [Networked] public float CameraPitch       { get; private set; }
 
@@ -69,25 +72,26 @@ public class PlayerMovement : NetworkBehaviour
 
     public override void FixedUpdateNetwork()
     {
-        if (!GetInput(out PlayerNetworkInput input)) return;
+        if (!GetInput(out PlayerNetworkInput input))
+        {
+            if (Object != null && Object.HasStateAuthority)
+            {
+                IsPushing = false;
+                IsSprinting = false;
+                MoveInput = Vector2.zero;
+            }
+
+            return;
+        }
 
         CameraYaw = input.yaw;
         CameraPitch = input.pitch;
 
-        bool sprinting = input.isSprinting && input.moveInput.y > 0;
-        bool jumping   = input.isJumping && cc.Grounded;
-
-        IsSprinting = sprinting;
-        IsJumping   = jumping;
+        bool jumping = input.isJumping && cc.Grounded;
+        IsJumping = jumping;
 
         if (jumping)
             cc.Jump(overrideImpulse: Mathf.Sqrt(jumpHeight * -2f * gravity));
-
-        float desiredMaxSpeed = 0f;
-        if (sprinting)                              desiredMaxSpeed = sprintSpeed;
-        else if (input.moveInput.magnitude > 0.5f) desiredMaxSpeed = runSpeed;
-        else if (input.moveInput.magnitude > 0f)   desiredMaxSpeed = walkSpeed;
-        cc.maxSpeed = desiredMaxSpeed;
 
         Quaternion cameraYaw = Quaternion.Euler(0f, input.yaw, 0f);
         Vector3 right   = cameraYaw * Vector3.right;
@@ -106,13 +110,6 @@ public class PlayerMovement : NetworkBehaviour
                 transform.rotation,
                 targetRotation,
                 turnSpeed * Runner.DeltaTime);
-
-            Vector3 localMoveDirection = transform.InverseTransformDirection(moveDir);
-            MoveInput = new Vector2(localMoveDirection.x, localMoveDirection.z);
-        }
-        else
-        {
-            MoveInput = Vector2.zero;
         }
 
         Yaw = transform.eulerAngles.y;
@@ -121,9 +118,33 @@ public class PlayerMovement : NetworkBehaviour
             moveDir,
             out bool isBlockingHeavyPush,
             out Vector3 heavyBlockNormal,
-            out float resolvedMoveSpeedScale);
+            out float resolvedMoveSpeedScale,
+            out bool isPushingHeavyObject);
+        IsPushing = isPushingHeavyObject;
+
+        bool sprinting = !isPushingHeavyObject && input.isSprinting && input.moveInput.y > 0;
+        IsSprinting = sprinting;
+
+        float desiredMaxSpeed = 0f;
+        if (isPushingHeavyObject)                       desiredMaxSpeed = walkSpeed * pushingSpeedMultiplier;
+        else if (sprinting)                             desiredMaxSpeed = sprintSpeed;
+        else if (input.moveInput.magnitude > 0.5f)      desiredMaxSpeed = runSpeed;
+        else if (input.moveInput.magnitude > 0f)        desiredMaxSpeed = walkSpeed;
+        cc.maxSpeed = desiredMaxSpeed;
         if (isBlockingHeavyPush)
             cc.maxSpeed = desiredMaxSpeed * resolvedMoveSpeedScale;
+
+        if (moveDir.sqrMagnitude > 0.0001f)
+        {
+            Vector3 localMoveDirection = transform.InverseTransformDirection(moveDir);
+            MoveInput = new Vector2(localMoveDirection.x, localMoveDirection.z);
+            if (isPushingHeavyObject)
+                MoveInput *= pushingAnimationInputScale;
+        }
+        else
+        {
+            MoveInput = Vector2.zero;
+        }
 
         float previousY = transform.position.y;
         float previousStepOffset = characterController != null ? characterController.stepOffset : 0f;
@@ -145,11 +166,13 @@ public class PlayerMovement : NetworkBehaviour
         Vector3 moveDir,
         out bool isBlockingHeavyPush,
         out Vector3 heavyBlockNormal,
-        out float resolvedMoveSpeedScale)
+        out float resolvedMoveSpeedScale,
+        out bool isPushingHeavyObject)
     {
         isBlockingHeavyPush = false;
         heavyBlockNormal = Vector3.zero;
         resolvedMoveSpeedScale = 1f;
+        isPushingHeavyObject = false;
 
         if (moveDir.sqrMagnitude <= 0.0001f)
             return moveDir;
@@ -161,6 +184,8 @@ public class PlayerMovement : NetworkBehaviour
                 moveDir,
                 out int directionIndex,
                 out Vector3 blockNormal);
+
+            isPushingHeavyObject = hasPushIntent;
 
             if (hasPushIntent && HasInputAuthority)
                 heavyObject.SubmitPushIntent(directionIndex, Object.InputAuthority);
