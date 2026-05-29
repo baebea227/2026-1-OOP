@@ -41,6 +41,7 @@ public class WaitingRoomManager : MonoBehaviour, INetworkRunnerCallbacks
     [SerializeField] private TMP_Text playerCountText;
     [SerializeField] private TMP_Text player1Text;
     [SerializeField] private TMP_Text player2Text;
+    [SerializeField] private List<TMP_Text> playerStateTexts = new List<TMP_Text>();
     [SerializeField] private TMP_Text statusText;
 
     [SerializeField] private Button CopyButton;
@@ -51,9 +52,7 @@ public class WaitingRoomManager : MonoBehaviour, INetworkRunnerCallbacks
     [SerializeField] private TMP_Text readyButtonText;
     [SerializeField] private TMP_Text startGameButtonText;
 
-    [Header("Setting")]
-    // 2인 전용 게임이므로 최대 인원은 2명
-    [SerializeField] private int maxPlayers = 2;
+    private const int DefaultMaxPlayers = 2;
     private const float CopyButtonGap = 8f;
 
     // 현재 로컬 플레이어의 RoomPlayerState
@@ -476,14 +475,15 @@ public class WaitingRoomManager : MonoBehaviour, INetworkRunnerCallbacks
     /// 게임 시작 가능 여부 검사
     /// 
     /// 조건:
-    /// 1. 플레이어 수가 maxPlayers와 같아야 함
+    /// 1. 플레이어 수가 세션의 최대 인원과 같아야 함
     /// 2. 모든 플레이어가 Ready 상태여야 함
     /// </summary>
     private bool CanStartGame()
     {
         List<RoomPlayerState> states = GetRoomPlayerStates();
+        int requiredPlayers = GetRequiredPlayerCount();
 
-        if (states.Count != maxPlayers)
+        if (states.Count != requiredPlayers)
             return false;
 
         foreach (RoomPlayerState state in states)
@@ -529,7 +529,7 @@ public class WaitingRoomManager : MonoBehaviour, INetworkRunnerCallbacks
         if (playerCountText != null)
         {
             int count = GetCurrentPlayerCount();
-            playerCountText.text = $"Players: {count}/{maxPlayers}";
+            playerCountText.text = $"Players: {count}/{GetRequiredPlayerCount()}";
         }
     }
 
@@ -579,29 +579,36 @@ public class WaitingRoomManager : MonoBehaviour, INetworkRunnerCallbacks
     private void UpdatePlayerListUI()
     {
         List<RoomPlayerState> states = GetRoomPlayerStates();
+        List<TMP_Text> textSlots = GetPlayerTextSlots();
+        int requiredPlayers = GetRequiredPlayerCount();
 
-        if (player1Text != null)
-            player1Text.text = "Player 1 - Not Ready";
+        for (int i = 0; i < textSlots.Count; i++)
+        {
+            TMP_Text textSlot = textSlots[i];
 
-        if (player2Text != null)
-            player2Text.text = "Player 2 - Not Ready";
+            if (textSlot == null)
+                continue;
 
-        for (int i = 0; i < states.Count; i++)
+            if (i < requiredPlayers)
+                textSlot.text = $"Player {i + 1} - Not Ready";
+            else
+                textSlot.text = "";
+        }
+
+        for (int i = 0; i < states.Count && i < textSlots.Count; i++)
         {
             RoomPlayerState state = states[i];
+            TMP_Text textSlot = textSlots[i];
+
+            if (textSlot == null)
+                continue;
 
             string playerText = $"Player {i + 1}";
             string roleText = state.IsHostPlayer ? "Host" : "Client";
             string readyText = state.IsReady ? "Ready" : "Not Ready";
             string localText = state.Object != null && state.Object.HasInputAuthority ? " (You)" : "";
 
-            string line = $"{playerText} - {roleText} - {readyText}{localText}";
-
-            if (i == 0 && player1Text != null)
-                player1Text.text = line;
-
-            if (i == 1 && player2Text != null)
-                player2Text.text = line;
+            textSlot.text = $"{playerText} - {roleText} - {readyText}{localText}";
         }
     }
 
@@ -653,6 +660,33 @@ public class WaitingRoomManager : MonoBehaviour, INetworkRunnerCallbacks
             return 0;
 
         return CountActivePlayers(runner);
+    }
+
+    private int GetRequiredPlayerCount()
+    {
+        FindReferences();
+
+        if (runner != null && runner.SessionInfo != null && runner.SessionInfo.MaxPlayers > 0)
+            return runner.SessionInfo.MaxPlayers;
+
+        if (networkSessionManager != null)
+            return networkSessionManager.MaxPlayers;
+
+        return DefaultMaxPlayers;
+    }
+
+    private List<TMP_Text> GetPlayerTextSlots()
+    {
+        if (playerStateTexts.Count == 0)
+        {
+            if (player1Text != null)
+                playerStateTexts.Add(player1Text);
+
+            if (player2Text != null && player2Text != player1Text)
+                playerStateTexts.Add(player2Text);
+        }
+
+        return playerStateTexts;
     }
 
     /// <summary>

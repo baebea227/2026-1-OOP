@@ -20,6 +20,8 @@ public class NetworkSessionManager : MonoBehaviour, INetworkRunnerCallbacks
 
     [Header("Session Setting")]
     [SerializeField] private string lobbyName = "MainLobby";
+    [Min(1)]
+    [Tooltip("Room capacity. The game starts when this many players are ready.")]
     [SerializeField] private int maxPlayers = 2;
     [SerializeField] private SceneFlowManager sceneFlowManager;
 
@@ -45,6 +47,7 @@ public class NetworkSessionManager : MonoBehaviour, INetworkRunnerCallbacks
     public NetworkRunner Runner => runner;
     public IReadOnlyList<SessionInfo> CachedSessions => cachedSessions;
     public bool IsBusy => isBusy;
+    public int MaxPlayers => GetConfiguredMaxPlayers();
 
     private void Awake()
     {
@@ -242,7 +245,9 @@ public class NetworkSessionManager : MonoBehaviour, INetworkRunnerCallbacks
         }
 
         SetBusy(true);
-        Debug.Log($"[NetworkSessionManager][Diagnostics:StartSessionBegin] mode={gameMode}, session={sessionName}, lobby={lobbyName}, maxPlayers={maxPlayers}");
+        int configuredMaxPlayers = GetConfiguredMaxPlayers();
+
+        Debug.Log($"[NetworkSessionManager][Diagnostics:StartSessionBegin] mode={gameMode}, session={sessionName}, lobby={lobbyName}, maxPlayers={configuredMaxPlayers}");
 
         try
         {
@@ -268,7 +273,7 @@ public class NetworkSessionManager : MonoBehaviour, INetworkRunnerCallbacks
 
                 CustomLobbyName = lobbyName,
 
-                PlayerCount = maxPlayers,
+                PlayerCount = configuredMaxPlayers,
 
                 IsOpen = true,
                 IsVisible = true,
@@ -367,6 +372,16 @@ public class NetworkSessionManager : MonoBehaviour, INetworkRunnerCallbacks
             return "";
 
         return sessionName.Trim().ToUpper();
+    }
+
+    public void ConfigureMaxPlayers(int playerCount)
+    {
+        maxPlayers = Mathf.Max(1, playerCount);
+    }
+
+    private int GetConfiguredMaxPlayers()
+    {
+        return Mathf.Max(1, maxPlayers);
     }
 
     private void SetStatus(string message)
@@ -628,7 +643,7 @@ public class NetworkSessionManager : MonoBehaviour, INetworkRunnerCallbacks
     {
         int currentCount = GetCurrentPlayerCount();
 
-        SetStatus($"Player joined: {player} / Current players: {currentCount}/{maxPlayers}");
+        SetStatus($"Player joined: {player} / Current players: {currentCount}/{GetConfiguredMaxPlayers()}");
         LogRunnerState($"OnPlayerJoined player={player}", runner);
 
         OnPlayerJoinedEvent?.Invoke(player);
@@ -638,7 +653,7 @@ public class NetworkSessionManager : MonoBehaviour, INetworkRunnerCallbacks
     {
         int currentCount = GetCurrentPlayerCount();
 
-        SetStatus($"Player left: {player} / Current players: {currentCount}/{maxPlayers}");
+        SetStatus($"Player left: {player} / Current players: {currentCount}/{GetConfiguredMaxPlayers()}");
         LogRunnerState($"OnPlayerLeft player={player}", runner);
 
         OnPlayerLeftEvent?.Invoke(player);
