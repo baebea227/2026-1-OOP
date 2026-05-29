@@ -2,12 +2,14 @@ using System.Collections.Generic;
 using Fusion;
 using UnityEngine;
 
-public class HeavyObject : InteractableObject, IPushable
+public class HeavyObject : InteractableObject
 {
     [Header("Heavy Settings")]
     public int requiredPushers = 2;
     public float scriptedMoveSpeed = 1.5f;
     public float pushHoldDuration = 0.25f;
+    [Range(0f, 1f)]
+    [SerializeField] private float pushIntentDotThreshold = 0.65f;
     [SerializeField] private Transform rangeMinCorner;
     [SerializeField] private Transform rangeMaxCorner;
 
@@ -22,13 +24,14 @@ public class HeavyObject : InteractableObject, IPushable
     private const int PositiveLocalZ = 2;
     private const int NegativeLocalZ = 3;
     private const int DirectionCount = 4;
-    private const float minPushForceSqr = 0.0001f;
+    private const float minDirectionSqr = 0.0001f;
 
     private static readonly RigidbodyConstraints ScriptedMovementConstraints =
         RigidbodyConstraints.FreezePositionY | RigidbodyConstraints.FreezeRotation;
 
     private readonly Dictionary<PlayerRef, PushSample> pushSamples = new();
     private const float pushWindow = 0.15f;
+    private Collider[] pushFaceColliders;
     private float activeMoveUntil = -1f;
     private int activeDirection = -1;
     private bool warnedIncompleteRange;
@@ -37,12 +40,14 @@ public class HeavyObject : InteractableObject, IPushable
     {
         base.Awake();
         CollisionPolicyBootstrap.ApplyLayerToColliderOwners(gameObject, CollisionPolicyBootstrap.HeavyPuzzleLayer);
+        CachePushFaceColliders();
         ApplyScriptedMovementSetup();
     }
 
     public override void Spawned()
     {
         base.Spawned();
+        CachePushFaceColliders();
         ApplyScriptedMovementSetup();
     }
 
@@ -58,23 +63,50 @@ public class HeavyObject : InteractableObject, IPushable
         ApplyScriptedMove(now);
     }
 
-    public void OnPush(Vector3 force, PlayerRef pusher)
+    public bool TryResolvePushIntent(
+        Vector3 pusherPosition,
+        Vector3 moveDirection,
+        out int directionIndex,
+        out Vector3 blockNormal)
+    {
+        directionIndex = -1;
+        blockNormal = Vector3.zero;
+
+        moveDirection.y = 0f;
+        if (moveDirection.sqrMagnitude <= minDirectionSqr)
+            return false;
+
+        if (!TryResolveNearestPushFace(pusherPosition, out directionIndex, out blockNormal))
+            return false;
+
+        Vector3 pushDirection = -blockNormal;
+        pushDirection.y = 0f;
+        if (pushDirection.sqrMagnitude <= minDirectionSqr)
+            return false;
+
+        pushDirection.Normalize();
+        moveDirection.Normalize();
+
+        return Vector3.Dot(moveDirection, pushDirection) >= pushIntentDotThreshold;
+    }
+
+    public void SubmitPushIntent(int directionIndex, PlayerRef pusher)
     {
         if (Object.HasStateAuthority)
-            TryRecordPush(force, pusher);
+            TryRecordPush(directionIndex, pusher);
         else
-            RPC_Push(force, pusher);
+            RPC_SubmitPushIntent(directionIndex, pusher);
     }
 
     [Rpc(RpcSources.All, RpcTargets.StateAuthority)]
-    private void RPC_Push(Vector3 force, PlayerRef pusher)
+    private void RPC_SubmitPushIntent(int directionIndex, PlayerRef pusher)
     {
-        TryRecordPush(force, pusher);
+        TryRecordPush(directionIndex, pusher);
     }
 
-    private void TryRecordPush(Vector3 force, PlayerRef pusher)
+    private void TryRecordPush(int directionIndex, PlayerRef pusher)
     {
-        if (!TrySnapForce(force, out int directionIndex))
+        if (!IsValidDirectionIndex(directionIndex))
             return;
 
         float now = Runner.SimulationTime;
@@ -85,25 +117,116 @@ public class HeavyObject : InteractableObject, IPushable
         };
     }
 
-    private bool TrySnapForce(Vector3 force, out int directionIndex)
+    private bool TryResolveNearestPushFace(Vector3 pusherPosition, out int directionIndex, out Vector3 blockNormal)
     {
-        force.y = 0f;
+        directionIndex = -1;
+        blockNormal = Vector3.zero;
 
-        if (force.sqrMagnitude <= minPushForceSqr)
-        {
-            directionIndex = -1;
+        if (!TryGetLocalColliderBounds(out Bounds localBounds))
             return false;
+
+        Vector3 localPusherPosition = transform.InverseTransformPoint(pusherPosition);
+
+        float distanceToPositiveX = Mathf.Abs(localPusherPosition.x - localBounds.max.x);
+        float distanceToNegativeX = Mathf.Abs(localPusherPosition.x - localBounds.min.x);
+        float distanceToPositiveZ = Mathf.Abs(localPusherPosition.z - localBounds.max.z);
+        float distanceToNegativeZ = Mathf.Abs(localPusherPosition.z - localBounds.min.z);
+
+        float nearestDistance = distanceToPositiveX;
+        Vector3 localBlockNormal = Vector3.right;
+        directionIndex = NegativeLocalX;
+
+        if (distanceToNegativeX < nearestDistance)
+        {
+            nearestDistance = distanceToNegativeX;
+            localBlockNormal = Vector3.left;
+            directionIndex = PositiveLocalX;
         }
 
-        Vector3 localForce = transform.InverseTransformDirection(force);
-        localForce.y = 0f;
+        if (distanceToPositiveZ < nearestDistance)
+        {
+            nearestDistance = distanceToPositiveZ;
+            localBlockNormal = Vector3.forward;
+            directionIndex = NegativeLocalZ;
+        }
 
-        if (Mathf.Abs(localForce.x) >= Mathf.Abs(localForce.z))
-            directionIndex = localForce.x >= 0f ? PositiveLocalX : NegativeLocalX;
-        else
-            directionIndex = localForce.z >= 0f ? PositiveLocalZ : NegativeLocalZ;
+        if (distanceToNegativeZ < nearestDistance)
+        {
+            localBlockNormal = Vector3.back;
+            directionIndex = PositiveLocalZ;
+        }
 
+        blockNormal = transform.TransformDirection(localBlockNormal);
+        blockNormal.y = 0f;
+        if (blockNormal.sqrMagnitude <= minDirectionSqr)
+            return false;
+
+        blockNormal.Normalize();
         return true;
+    }
+
+    private bool TryGetLocalColliderBounds(out Bounds localBounds)
+    {
+        localBounds = default;
+
+        if (pushFaceColliders == null || pushFaceColliders.Length == 0)
+            CachePushFaceColliders();
+
+        bool hasBounds = false;
+        if (pushFaceColliders != null)
+        {
+            foreach (Collider objectCollider in pushFaceColliders)
+            {
+                if (objectCollider == null || objectCollider.isTrigger)
+                    continue;
+
+                EncapsulateWorldBoundsAsLocal(objectCollider.bounds, ref localBounds, ref hasBounds);
+            }
+        }
+
+        if (hasBounds)
+            return true;
+
+        localBounds = new Bounds(Vector3.zero, Vector3.one);
+        return true;
+    }
+
+    private void EncapsulateWorldBoundsAsLocal(Bounds worldBounds, ref Bounds localBounds, ref bool hasBounds)
+    {
+        Vector3 min = worldBounds.min;
+        Vector3 max = worldBounds.max;
+
+        EncapsulateLocalPoint(new Vector3(min.x, min.y, min.z), ref localBounds, ref hasBounds);
+        EncapsulateLocalPoint(new Vector3(min.x, min.y, max.z), ref localBounds, ref hasBounds);
+        EncapsulateLocalPoint(new Vector3(min.x, max.y, min.z), ref localBounds, ref hasBounds);
+        EncapsulateLocalPoint(new Vector3(min.x, max.y, max.z), ref localBounds, ref hasBounds);
+        EncapsulateLocalPoint(new Vector3(max.x, min.y, min.z), ref localBounds, ref hasBounds);
+        EncapsulateLocalPoint(new Vector3(max.x, min.y, max.z), ref localBounds, ref hasBounds);
+        EncapsulateLocalPoint(new Vector3(max.x, max.y, min.z), ref localBounds, ref hasBounds);
+        EncapsulateLocalPoint(new Vector3(max.x, max.y, max.z), ref localBounds, ref hasBounds);
+    }
+
+    private void EncapsulateLocalPoint(Vector3 worldPoint, ref Bounds localBounds, ref bool hasBounds)
+    {
+        Vector3 localPoint = transform.InverseTransformPoint(worldPoint);
+        if (!hasBounds)
+        {
+            localBounds = new Bounds(localPoint, Vector3.zero);
+            hasBounds = true;
+            return;
+        }
+
+        localBounds.Encapsulate(localPoint);
+    }
+
+    private void CachePushFaceColliders()
+    {
+        pushFaceColliders = GetComponentsInChildren<Collider>();
+    }
+
+    private bool IsValidDirectionIndex(int directionIndex)
+    {
+        return directionIndex >= 0 && directionIndex < DirectionCount;
     }
 
     private bool TryGetCooperativePush(float now, out int directionIndex)
@@ -161,7 +284,7 @@ public class HeavyObject : InteractableObject, IPushable
         Vector3 worldDirection = transform.TransformDirection(localDirection);
         worldDirection.y = 0f;
 
-        if (worldDirection.sqrMagnitude <= minPushForceSqr)
+        if (worldDirection.sqrMagnitude <= minDirectionSqr)
             return Vector3.zero;
 
         return worldDirection.normalized;
@@ -178,7 +301,7 @@ public class HeavyObject : InteractableObject, IPushable
         }
 
         Vector3 moveDirection = GetWorldDirection(activeDirection);
-        if (moveDirection.sqrMagnitude <= minPushForceSqr)
+        if (moveDirection.sqrMagnitude <= minDirectionSqr)
             return;
 
         float moveDistance = Mathf.Max(0f, scriptedMoveSpeed) * Runner.DeltaTime;

@@ -1,11 +1,22 @@
 using System.Collections.Generic;
 using UnityEngine;
 using Fusion;
+using UnityEngine.UI;
 
 public class PlayerSplitScreenCamera : NetworkBehaviour
 {
     private const int SplitScreenPlayerCount = 2;
-    private const float SeparatorWidth = 2f;
+    private const int SplitSeparatorSortingOrder = 50;
+    private const int MaxControlHintCount = 3;
+    private const float ControlHintYOffset = 24f;
+    private const float ControlHintHeight = 26f;
+    private const float ControlHintRowGap = 6f;
+    private const float ControlHintSpacing = 8f;
+    private const float ControlHintPaddingX = 10f;
+    private const float ControlHintKeyWidth = 24f;
+    private const float ControlHintKeyInsetY = 4f;
+    private const float ControlHintInnerGap = 6f;
+    private const float ControlHintScreenPadding = 12f;
 
     private static readonly Rect[] SplitScreenRects = new Rect[]
     {
@@ -14,6 +25,11 @@ public class PlayerSplitScreenCamera : NetworkBehaviour
     };
     private static readonly List<PlayerSplitScreenCamera> registeredCameras = new List<PlayerSplitScreenCamera>();
     private static Camera splitScreenBackgroundCamera;
+    private static GameObject splitSeparatorCanvasObject;
+    private static RectTransform splitSeparatorRect;
+    private static Image splitSeparatorImage;
+    private static bool hasSplitSeparatorDimmedOverride;
+    private static bool splitSeparatorDimmedOverride;
 
     [Header("Third Person Settings")]
     public Vector3 pivotOffset = new Vector3(0.35f, 1.35f, 0f);
@@ -22,6 +38,14 @@ public class PlayerSplitScreenCamera : NetworkBehaviour
     public float followSmoothTime = 0.04f;
     public float collisionRadius = 0.25f;
     public float collisionPadding = 0.1f;
+    [SerializeField] private LayerMask cameraCollisionMask =
+        Physics.DefaultRaycastLayers & ~(CollisionPolicyBootstrap.PlayerBodyMask | CollisionPolicyBootstrap.PushableMask);
+
+    [Header("Split Screen UI")]
+    public bool showSplitSeparator = true;
+    public float splitSeparatorWidth = 4f;
+    [Range(0f, 1f)] public float splitSeparatorNormalAlpha = 0.75f;
+    [Range(0f, 1f)] public float splitSeparatorMenuAlpha = 0.22f;
 
     [Header("Crosshair")]
     public bool showCrosshair = true;
@@ -29,31 +53,59 @@ public class PlayerSplitScreenCamera : NetworkBehaviour
     public int crosshairDiameter = 18;
     public int crosshairThickness = 2;
 
+    [Header("Control Hints")]
+    public bool showControlHints = true;
+    public Color controlHintTextColor = Color.white;
+    public Color controlHintBackgroundColor = new Color(0f, 0f, 0f, 0.65f);
+    public Color controlHintKeyColor = Color.white;
+    public Color controlHintKeyTextColor = Color.black;
+
     private Camera cam;
     private PlayerInputHandler inputHandler;
     private PlayerMovement playerMovement;
+    private PlayerGrabHandler grabHandler;
     private Transform target;
     private Collider[] ownerColliders;
     private Vector3 followVelocity;
     private Transform originalParent;
     private Texture2D crosshairTexture;
+    private readonly string[] controlHintKeys = new string[MaxControlHintCount];
+    private readonly string[] controlHintActions = new string[MaxControlHintCount];
     private readonly RaycastHit[] cameraCollisionHits = new RaycastHit[16];
+    private GUIStyle controlHintKeyStyle;
+    private GUIStyle controlHintActionStyle;
     private int cachedCrosshairDiameter;
     private int cachedCrosshairThickness;
     private Color cachedCrosshairColor;
     private bool initialized;
+    private bool splitSeparatorDimmed;
+
+    public bool IsSplitSeparatorDimmed => splitSeparatorDimmed;
+
+    public void SetSplitSeparatorDimmed(bool dimmed)
+    {
+        splitSeparatorDimmed = dimmed;
+        hasSplitSeparatorDimmedOverride = true;
+        splitSeparatorDimmedOverride = dimmed;
+        UpdateSplitSeparatorUi();
+    }
 
     void Awake()
     {
         cam = GetComponent<Camera>();
         target = GetComponentInParent<NetworkObject>()?.transform;
         originalParent = transform.parent;
+
+        if (cameraCollisionMask.value == 0)
+            cameraCollisionMask = Physics.DefaultRaycastLayers &
+                ~(CollisionPolicyBootstrap.PlayerBodyMask | CollisionPolicyBootstrap.PushableMask);
     }
 
     public override void Spawned()
     {
         inputHandler = GetComponentInParent<PlayerInputHandler>();
         playerMovement = GetComponentInParent<PlayerMovement>();
+        grabHandler = GetComponentInParent<PlayerGrabHandler>();
 
         if (target == null)
             target = GetComponentInParent<NetworkObject>()?.transform;
@@ -138,13 +190,7 @@ public class PlayerSplitScreenCamera : NetworkBehaviour
         if (!HasInputAuthority)
             return;
 
-        DrawSplitSeparator();
-
-        if (!showCrosshair || cam == null || !cam.enabled)
-            return;
-
-        Texture2D texture = GetCrosshairTexture();
-        if (texture == null)
+        if (cam == null || !cam.enabled)
             return;
 
         Rect cameraPixelRect = cam.pixelRect;
@@ -152,9 +198,151 @@ public class PlayerSplitScreenCamera : NetworkBehaviour
         float centerY = Screen.height - (cameraPixelRect.y + cameraPixelRect.height * 0.5f);
         float diameter = Mathf.Max(1, crosshairDiameter);
 
-        GUI.DrawTexture(
-            new Rect(centerX - diameter * 0.5f, centerY - diameter * 0.5f, diameter, diameter),
-            texture);
+        if (showCrosshair)
+        {
+            Texture2D texture = GetCrosshairTexture();
+            if (texture != null)
+            {
+                GUI.DrawTexture(
+                    new Rect(centerX - diameter * 0.5f, centerY - diameter * 0.5f, diameter, diameter),
+                    texture);
+            }
+        }
+
+        if (showControlHints)
+            DrawControlHints(centerX, centerY + diameter * 0.5f + ControlHintYOffset, cameraPixelRect.width);
+    }
+
+    private void DrawControlHints(float centerX, float topY, float cameraWidth)
+    {
+        int hintCount = CollectControlHints();
+        if (hintCount == 0)
+            return;
+
+        EnsureControlHintStyles();
+
+        float maxRowWidth = Mathf.Max(ControlHintKeyWidth, cameraWidth - ControlHintScreenPadding * 2f);
+        int rowStart = 0;
+        while (rowStart < hintCount)
+        {
+            int rowEnd = rowStart;
+            float rowWidth = 0f;
+
+            while (rowEnd < hintCount)
+            {
+                float hintWidth = GetControlHintWidth(controlHintActions[rowEnd]);
+                float candidateWidth = rowWidth > 0f ? rowWidth + ControlHintSpacing + hintWidth : hintWidth;
+                if (rowEnd > rowStart && candidateWidth > maxRowWidth)
+                    break;
+
+                rowWidth = candidateWidth;
+                rowEnd++;
+            }
+
+            DrawControlHintRow(rowStart, rowEnd, centerX - rowWidth * 0.5f, topY);
+            rowStart = rowEnd;
+            topY += ControlHintHeight + ControlHintRowGap;
+        }
+    }
+
+    private int CollectControlHints()
+    {
+        if (grabHandler == null || PlayerInputHandler.IsGameplayInputBlocked)
+            return 0;
+
+        int hintCount = 0;
+        if (grabHandler.ShowInteractHint)
+            AddControlHint(ref hintCount, "E", "Interact");
+
+        if (grabHandler.ShowGrabHint)
+            AddControlHint(ref hintCount, "F", grabHandler.GrabHintAction);
+
+        if (grabHandler.ShowThrowHint)
+            AddControlHint(ref hintCount, "G", "Throw");
+
+        return hintCount;
+    }
+
+    private void AddControlHint(ref int hintCount, string key, string action)
+    {
+        if (hintCount >= MaxControlHintCount || string.IsNullOrEmpty(action))
+            return;
+
+        controlHintKeys[hintCount] = key;
+        controlHintActions[hintCount] = action;
+        hintCount++;
+    }
+
+    private void DrawControlHintRow(int startIndex, int endIndex, float x, float y)
+    {
+        for (int i = startIndex; i < endIndex; i++)
+        {
+            float hintWidth = GetControlHintWidth(controlHintActions[i]);
+            DrawControlHint(new Rect(x, y, hintWidth, ControlHintHeight), controlHintKeys[i], controlHintActions[i]);
+            x += hintWidth + ControlHintSpacing;
+        }
+    }
+
+    private float GetControlHintWidth(string action)
+    {
+        EnsureControlHintStyles();
+        float actionWidth = controlHintActionStyle.CalcSize(new GUIContent(action)).x;
+        return Mathf.Ceil(ControlHintPaddingX + ControlHintKeyWidth + ControlHintInnerGap + actionWidth + ControlHintPaddingX);
+    }
+
+    private void DrawControlHint(Rect rect, string key, string action)
+    {
+        Color oldColor = GUI.color;
+
+        GUI.color = controlHintBackgroundColor;
+        GUI.DrawTexture(rect, Texture2D.whiteTexture);
+
+        Rect keyRect = new Rect(
+            rect.x + ControlHintPaddingX,
+            rect.y + ControlHintKeyInsetY,
+            ControlHintKeyWidth,
+            rect.height - ControlHintKeyInsetY * 2f);
+
+        GUI.color = controlHintKeyColor;
+        GUI.DrawTexture(keyRect, Texture2D.whiteTexture);
+        GUI.color = oldColor;
+
+        Rect actionRect = new Rect(
+            keyRect.xMax + ControlHintInnerGap,
+            rect.y,
+            rect.xMax - keyRect.xMax - ControlHintInnerGap - ControlHintPaddingX,
+            rect.height);
+
+        GUI.Label(keyRect, key, controlHintKeyStyle);
+        GUI.Label(actionRect, action, controlHintActionStyle);
+    }
+
+    private void EnsureControlHintStyles()
+    {
+        if (controlHintKeyStyle == null)
+        {
+            controlHintKeyStyle = new GUIStyle(GUI.skin.label)
+            {
+                alignment = TextAnchor.MiddleCenter,
+                fontStyle = FontStyle.Bold,
+                fontSize = 12,
+                clipping = TextClipping.Clip
+            };
+        }
+
+        if (controlHintActionStyle == null)
+        {
+            controlHintActionStyle = new GUIStyle(GUI.skin.label)
+            {
+                alignment = TextAnchor.MiddleLeft,
+                fontStyle = FontStyle.Bold,
+                fontSize = 13,
+                clipping = TextClipping.Clip
+            };
+        }
+
+        controlHintKeyStyle.normal.textColor = controlHintKeyTextColor;
+        controlHintActionStyle.normal.textColor = controlHintTextColor;
     }
 
     private void GetCameraAngles(out float yaw, out float pitch)
@@ -190,9 +378,14 @@ public class PlayerSplitScreenCamera : NetworkBehaviour
         registeredCameras.Remove(this);
 
         if (registeredCameras.Count == 0)
+        {
             DestroySplitScreenBackgroundCamera();
+            DestroySplitSeparatorCanvas();
+        }
         else
+        {
             UpdateSplitScreenCameras();
+        }
     }
 
     private static void UpdateSplitScreenCameras()
@@ -202,6 +395,7 @@ public class PlayerSplitScreenCamera : NetworkBehaviour
         if (registeredCameras.Count == 0)
         {
             DestroySplitScreenBackgroundCamera();
+            DestroySplitSeparatorCanvas();
             return;
         }
 
@@ -214,6 +408,8 @@ public class PlayerSplitScreenCamera : NetworkBehaviour
             Rect viewport = visible ? SplitScreenRects[i] : default;
             registeredCameras[i].ConfigureSplitScreenSlot(visible, viewport);
         }
+
+        UpdateSplitSeparatorUi();
     }
 
     private static bool IsInvalidRegisteredCamera(PlayerSplitScreenCamera camera)
@@ -292,14 +488,125 @@ public class PlayerSplitScreenCamera : NetworkBehaviour
             UnityEngine.Object.DestroyImmediate(backgroundCamera.gameObject);
     }
 
-    private static void DrawSplitSeparator()
+    private static void EnsureSplitSeparatorCanvas()
     {
-        Color oldColor = GUI.color;
-        GUI.color = Color.black;
-        GUI.DrawTexture(
-            new Rect(Screen.width * 0.5f - SeparatorWidth * 0.5f, 0f, SeparatorWidth, Screen.height),
-            Texture2D.whiteTexture);
-        GUI.color = oldColor;
+        if (splitSeparatorCanvasObject != null &&
+            splitSeparatorRect != null &&
+            splitSeparatorImage != null)
+        {
+            return;
+        }
+
+        GameObject canvasObject = new GameObject(
+            "SplitScreenSeparatorCanvas",
+            typeof(RectTransform),
+            typeof(Canvas),
+            typeof(CanvasScaler));
+        canvasObject.hideFlags = HideFlags.DontSave;
+        canvasObject.layer = 5;
+
+        Canvas canvas = canvasObject.GetComponent<Canvas>();
+        canvas.renderMode = RenderMode.ScreenSpaceOverlay;
+        canvas.sortingOrder = SplitSeparatorSortingOrder;
+
+        CanvasScaler scaler = canvasObject.GetComponent<CanvasScaler>();
+        scaler.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize;
+        scaler.referenceResolution = new Vector2(1920f, 1080f);
+        scaler.matchWidthOrHeight = 0.5f;
+
+        RectTransform canvasRect = canvasObject.GetComponent<RectTransform>();
+        StretchToParent(canvasRect);
+
+        GameObject separatorObject = new GameObject(
+            "SplitScreenSeparator",
+            typeof(RectTransform),
+            typeof(Image));
+        separatorObject.layer = 5;
+        separatorObject.transform.SetParent(canvasRect, false);
+
+        splitSeparatorCanvasObject = canvasObject;
+        splitSeparatorRect = separatorObject.GetComponent<RectTransform>();
+        splitSeparatorRect.anchorMin = new Vector2(0.5f, 0f);
+        splitSeparatorRect.anchorMax = new Vector2(0.5f, 1f);
+        splitSeparatorRect.pivot = new Vector2(0.5f, 0.5f);
+        splitSeparatorRect.anchoredPosition = Vector2.zero;
+        splitSeparatorRect.offsetMin = new Vector2(0f, 0f);
+        splitSeparatorRect.offsetMax = new Vector2(0f, 0f);
+
+        splitSeparatorImage = separatorObject.GetComponent<Image>();
+        splitSeparatorImage.raycastTarget = false;
+    }
+
+    private static void UpdateSplitSeparatorUi()
+    {
+        PlayerSplitScreenCamera owner = ResolveSplitSeparatorOwner();
+        if (owner == null || !owner.showSplitSeparator || owner.cam == null || !owner.cam.enabled)
+        {
+            if (splitSeparatorCanvasObject != null)
+                splitSeparatorCanvasObject.SetActive(false);
+
+            return;
+        }
+
+        EnsureSplitSeparatorCanvas();
+        splitSeparatorCanvasObject.SetActive(true);
+
+        float width = Mathf.Max(1f, owner.splitSeparatorWidth);
+        splitSeparatorRect.sizeDelta = new Vector2(width, 0f);
+
+        bool dimmed = hasSplitSeparatorDimmedOverride
+            ? splitSeparatorDimmedOverride
+            : owner.splitSeparatorDimmed;
+
+        float alpha = dimmed
+            ? owner.splitSeparatorMenuAlpha
+            : owner.splitSeparatorNormalAlpha;
+
+        splitSeparatorImage.color = new Color(0f, 0f, 0f, Mathf.Clamp01(alpha));
+    }
+
+    private static PlayerSplitScreenCamera ResolveSplitSeparatorOwner()
+    {
+        foreach (PlayerSplitScreenCamera camera in registeredCameras)
+        {
+            if (camera != null && camera.HasInputAuthority)
+                return camera;
+        }
+
+        foreach (PlayerSplitScreenCamera camera in registeredCameras)
+        {
+            if (camera != null && camera.cam != null && camera.cam.enabled)
+                return camera;
+        }
+
+        return null;
+    }
+
+    private static void DestroySplitSeparatorCanvas()
+    {
+        if (splitSeparatorCanvasObject == null)
+            return;
+
+        GameObject canvasObject = splitSeparatorCanvasObject;
+        splitSeparatorCanvasObject = null;
+        splitSeparatorRect = null;
+        splitSeparatorImage = null;
+        hasSplitSeparatorDimmedOverride = false;
+        splitSeparatorDimmedOverride = false;
+
+        if (Application.isPlaying)
+            UnityEngine.Object.Destroy(canvasObject);
+        else
+            UnityEngine.Object.DestroyImmediate(canvasObject);
+    }
+
+    private static void StretchToParent(RectTransform rectTransform)
+    {
+        rectTransform.anchorMin = Vector2.zero;
+        rectTransform.anchorMax = Vector2.one;
+        rectTransform.offsetMin = Vector2.zero;
+        rectTransform.offsetMax = Vector2.zero;
+        rectTransform.pivot = new Vector2(0.5f, 0.5f);
     }
 
     private Texture2D GetCrosshairTexture()
@@ -364,7 +671,7 @@ public class PlayerSplitScreenCamera : NetworkBehaviour
                 direction,
                 cameraCollisionHits,
                 targetDistance,
-                Physics.DefaultRaycastLayers,
+                cameraCollisionMask.value,
                 QueryTriggerInteraction.Ignore);
 
             for (int i = 0; i < hitCount; i++)
