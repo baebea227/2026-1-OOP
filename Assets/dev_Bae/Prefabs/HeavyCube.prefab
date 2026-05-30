@@ -130,7 +130,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::HeavyObject
   weight: 10
   requiredPushers: 2
-  scriptedMoveSpeed: 1.5
+  scriptedMoveSpeed: 2
   pushHoldDuration: 0.25
   rangeMinCorner: {fileID: 0}
   rangeMaxCorner: {fileID: 0}
