@@ -187,8 +187,6 @@ MonoBehaviour:
   distance: 4
   sideOffset: 0.2
   followSmoothTime: 0.04
-  collisionRadius: 0.25
-  collisionPadding: 0.1
   showCrosshair: 1
   crosshairColor: {r: 1, g: 1, b: 1, a: 1}
   crosshairDiameter: 18
