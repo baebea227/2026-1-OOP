@@ -55,9 +55,12 @@ public class WaitingRoomManager : MonoBehaviour, INetworkRunnerCallbacks
     [Header("Player State Icons")]
     [SerializeField] private string joinedPlayerIconResourcePath = "WaitingRoomIcons/blue_filled_icon";
     [SerializeField] private string emptyPlayerIconResourcePath = "WaitingRoomIcons/blue_outline_icon";
-    [SerializeField] private Vector2 playerStateIconSize = new Vector2(36f, 36f);
-    [SerializeField] private float playerStateIconGap = 12f;
+    [SerializeField] private Vector2 playerStateIconSize = new Vector2(58f, 58f);
+    [SerializeField] private float playerStateIconGap = 10f;
     [SerializeField] private List<Image> playerStateIcons = new List<Image>();
+    [SerializeField] private Vector2 playerReadyLabelSize = new Vector2(130f, 32f);
+    [SerializeField] private float playerReadyLabelGap = 20f;
+    [SerializeField] private List<TMP_Text> playerReadyLabels = new List<TMP_Text>();
 
     private const int DefaultMaxPlayers = 2;
     private const float CopyButtonGap = 8f;
@@ -660,12 +663,13 @@ public class WaitingRoomManager : MonoBehaviour, INetworkRunnerCallbacks
             if (textSlot == null)
                 continue;
 
-            SetPlayerStateIcon(i, textSlot, isRequiredSlot, i < presentPlayerCount);
+            bool isPlayerPresent = isRequiredSlot && i < presentPlayerCount;
 
-            if (isRequiredSlot)
-                textSlot.text = $"Player {i + 1} - Not Ready";
-            else
-                textSlot.text = "";
+            SetPlayerSlotVisible(textSlot, isPlayerPresent);
+            Image icon = SetPlayerStateIcon(i, textSlot, isPlayerPresent, isPlayerPresent);
+            SetPlayerReadyLabel(i, textSlot, false, icon);
+
+            textSlot.text = isPlayerPresent ? $"Player {i + 1}" : "";
         }
 
         for (int i = 0; i < states.Count && i < textSlots.Count; i++)
@@ -678,28 +682,29 @@ public class WaitingRoomManager : MonoBehaviour, INetworkRunnerCallbacks
 
             string playerText = $"Player {i + 1}";
             string roleText = state.IsHostPlayer ? "Host" : "Client";
-            string readyText = state.IsReady ? "Ready" : "Not Ready";
             string localText = state.Object != null && state.Object.HasInputAuthority ? " (You)" : "";
 
-            textSlot.text = $"{playerText} - {roleText} - {readyText}{localText}";
-            SetPlayerStateIcon(i, textSlot, true, true);
+            SetPlayerSlotVisible(textSlot, true);
+            Image icon = SetPlayerStateIcon(i, textSlot, true, true);
+            textSlot.text = $"{playerText}\n{roleText}{localText}";
+            SetPlayerReadyLabel(i, textSlot, state.IsReady, icon);
         }
     }
 
     /// <summary>
     /// Keeps the player presence icon next to each player state text slot.
     /// </summary>
-    private void SetPlayerStateIcon(int index, TMP_Text textSlot, bool isVisible, bool isPlayerPresent)
+    private Image SetPlayerStateIcon(int index, TMP_Text textSlot, bool isVisible, bool isPlayerPresent)
     {
         Image icon = GetOrCreatePlayerStateIcon(index, textSlot);
 
         if (icon == null)
-            return;
+            return null;
 
         icon.gameObject.SetActive(isVisible);
 
         if (!isVisible)
-            return;
+            return icon;
 
         LoadPlayerStateIconsIfNeeded();
 
@@ -707,7 +712,9 @@ public class WaitingRoomManager : MonoBehaviour, INetworkRunnerCallbacks
         icon.enabled = icon.sprite != null;
         icon.preserveAspect = true;
         icon.raycastTarget = false;
-        PositionPlayerStateIcon(icon.rectTransform);
+        PositionPlayerStateIcon(icon.rectTransform, textSlot);
+
+        return icon;
     }
 
     private Image GetOrCreatePlayerStateIcon(int index, TMP_Text textSlot)
@@ -722,14 +729,28 @@ public class WaitingRoomManager : MonoBehaviour, INetworkRunnerCallbacks
             playerStateIcons.Add(null);
 
         Image icon = playerStateIcons[index];
-
-        if (icon != null)
-            return icon;
-
-        Transform existingIcon = textSlot.transform.Find($"PlayerStateIcon_{index + 1}");
+        Transform existingIcon = FindExistingPlayerStateIcon(index, textSlot);
 
         if (existingIcon != null)
+        {
+            if (icon != null && icon.transform != existingIcon)
+                icon.gameObject.SetActive(false);
+
             icon = existingIcon.GetComponent<Image>();
+        }
+
+        HideDuplicateChildPlayerStateIcon(index, textSlot, icon);
+
+        if (icon != null)
+        {
+            icon.color = Color.white;
+            icon.raycastTarget = false;
+            icon.preserveAspect = true;
+            PositionPlayerStateIcon(icon.rectTransform, textSlot);
+            playerStateIcons[index] = icon;
+
+            return icon;
+        }
 
         if (icon == null)
         {
@@ -748,24 +769,152 @@ public class WaitingRoomManager : MonoBehaviour, INetworkRunnerCallbacks
         icon.color = Color.white;
         icon.raycastTarget = false;
         icon.preserveAspect = true;
-        PositionPlayerStateIcon(icon.rectTransform);
+        PositionPlayerStateIcon(icon.rectTransform, textSlot);
         playerStateIcons[index] = icon;
 
         return icon;
     }
 
-    private void PositionPlayerStateIcon(RectTransform iconRect)
+    private void PositionPlayerStateIcon(RectTransform iconRect, TMP_Text textSlot)
     {
         if (iconRect == null)
             return;
 
-        iconRect.anchorMin = new Vector2(0f, 0.5f);
-        iconRect.anchorMax = new Vector2(0f, 0.5f);
-        iconRect.pivot = new Vector2(1f, 0.5f);
+        iconRect.anchorMin = new Vector2(0.5f, 0.5f);
+        iconRect.anchorMax = new Vector2(0.5f, 0.5f);
+        iconRect.pivot = new Vector2(0.5f, 0.5f);
         iconRect.sizeDelta = playerStateIconSize.x > 0f && playerStateIconSize.y > 0f
             ? playerStateIconSize
-            : new Vector2(36f, 36f);
-        iconRect.anchoredPosition = new Vector2(-playerStateIconGap, 0f);
+            : new Vector2(58f, 58f);
+
+        if (textSlot != null && iconRect.parent == textSlot.transform)
+            iconRect.anchoredPosition = new Vector2(0f, iconRect.sizeDelta.y + playerStateIconGap);
+    }
+
+    private void SetPlayerSlotVisible(TMP_Text textSlot, bool isVisible)
+    {
+        if (textSlot == null)
+            return;
+
+        if (textSlot.gameObject.activeSelf != isVisible)
+            textSlot.gameObject.SetActive(isVisible);
+    }
+
+    private Transform FindExistingPlayerStateIcon(int index, TMP_Text textSlot)
+    {
+        if (textSlot == null)
+            return null;
+
+        string iconName = $"PlayerStateIcon_{index + 1}";
+
+        if (textSlot.transform.parent != null)
+        {
+            Transform siblingIcon = textSlot.transform.parent.Find(iconName);
+
+            if (siblingIcon != null)
+                return siblingIcon;
+        }
+
+        return textSlot.transform.Find(iconName);
+    }
+
+    private void HideDuplicateChildPlayerStateIcon(int index, TMP_Text textSlot, Image selectedIcon)
+    {
+        if (textSlot == null)
+            return;
+
+        Transform childIcon = textSlot.transform.Find($"PlayerStateIcon_{index + 1}");
+
+        if (childIcon != null && (selectedIcon == null || childIcon != selectedIcon.transform))
+            childIcon.gameObject.SetActive(false);
+    }
+
+    private void SetPlayerReadyLabel(int index, TMP_Text textSlot, bool isVisible, Image icon)
+    {
+        TMP_Text readyLabel = GetOrCreatePlayerReadyLabel(index, textSlot, icon);
+
+        if (readyLabel == null)
+            return;
+
+        readyLabel.gameObject.SetActive(isVisible);
+
+        if (!isVisible)
+            return;
+
+        readyLabel.text = "Ready";
+        PositionPlayerReadyLabel(readyLabel.rectTransform, icon);
+    }
+
+    private TMP_Text GetOrCreatePlayerReadyLabel(int index, TMP_Text textSlot, Image icon)
+    {
+        if (textSlot == null)
+            return null;
+
+        if (playerReadyLabels == null)
+            playerReadyLabels = new List<TMP_Text>();
+
+        while (playerReadyLabels.Count <= index)
+            playerReadyLabels.Add(null);
+
+        TMP_Text readyLabel = playerReadyLabels[index];
+        string labelName = $"PlayerReadyLabel_{index + 1}";
+        Transform labelParent = icon != null && icon.transform.parent != null
+            ? icon.transform.parent
+            : textSlot.transform.parent;
+
+        if (readyLabel == null && labelParent != null)
+        {
+            Transform existingLabel = labelParent.Find(labelName);
+
+            if (existingLabel != null)
+                readyLabel = existingLabel.GetComponent<TMP_Text>();
+        }
+
+        if (readyLabel == null)
+        {
+            GameObject labelObject = new GameObject(
+                labelName,
+                typeof(RectTransform),
+                typeof(CanvasRenderer),
+                typeof(TextMeshProUGUI)
+            );
+
+            labelObject.layer = textSlot.gameObject.layer;
+            labelObject.transform.SetParent(labelParent != null ? labelParent : textSlot.transform, false);
+            readyLabel = labelObject.GetComponent<TextMeshProUGUI>();
+        }
+
+        readyLabel.font = textSlot.font;
+        readyLabel.fontSize = 24f;
+        readyLabel.enableAutoSizing = true;
+        readyLabel.fontSizeMin = 14f;
+        readyLabel.fontSizeMax = 26f;
+        readyLabel.alignment = TextAlignmentOptions.Center;
+        readyLabel.color = Color.white;
+        readyLabel.raycastTarget = false;
+        playerReadyLabels[index] = readyLabel;
+
+        return readyLabel;
+    }
+
+    private void PositionPlayerReadyLabel(RectTransform labelRect, Image icon)
+    {
+        if (labelRect == null || icon == null)
+            return;
+
+        RectTransform iconRect = icon.rectTransform;
+
+        if (labelRect.parent != iconRect.parent)
+            labelRect.SetParent(iconRect.parent, false);
+
+        labelRect.anchorMin = iconRect.anchorMin;
+        labelRect.anchorMax = iconRect.anchorMax;
+        labelRect.pivot = new Vector2(0.5f, 0.5f);
+        labelRect.sizeDelta = playerReadyLabelSize.x > 0f && playerReadyLabelSize.y > 0f
+            ? playerReadyLabelSize
+            : new Vector2(130f, 32f);
+        labelRect.anchoredPosition = iconRect.anchoredPosition
+            + new Vector2(0f, iconRect.sizeDelta.y * 0.5f + playerReadyLabelGap);
     }
 
     private void LoadPlayerStateIconsIfNeeded()
