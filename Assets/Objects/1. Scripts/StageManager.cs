@@ -4,6 +4,7 @@ using UnityEngine;
 
 public class StageManager : NetworkBehaviour
 {
+    [SerializeField] int maxPlayer;
     [SerializeField] GameObject[] stagePrefabs;
     Stage selectedStage;
     int curStageIndex;
@@ -135,7 +136,7 @@ public class StageManager : NetworkBehaviour
                     cnt++;
                 }
             }
-            if(cnt == 2)
+            if(cnt == maxPlayer)
             {
                 RPC_HideSelecter();
                 SetStage(i);
