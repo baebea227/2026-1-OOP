@@ -65,6 +65,8 @@ public class WaitingRoomManager : MonoBehaviour, INetworkRunnerCallbacks
     private Sprite joinedPlayerIconSprite;
     private Sprite emptyPlayerIconSprite;
     private bool playerStateIconsLoaded;
+    private readonly HashSet<PlayerRef> pendingRoomPlayerStateSpawns = new HashSet<PlayerRef>();
+    private bool pendingNetworkGameStateSpawn;
 
     // 현재 로컬 플레이어의 RoomPlayerState
     // 즉, 내가 Ready 버튼을 눌렀을 때 바꿀 대상
@@ -193,7 +195,7 @@ public class WaitingRoomManager : MonoBehaviour, INetworkRunnerCallbacks
     /// 특정 플레이어의 RoomPlayerState가 없으면 생성함
     /// 이미 있으면 중복 생성하지 않음
     /// </summary>
-    private void SpawnRoomPlayerStateIfNeeded(PlayerRef player)
+    private async void SpawnRoomPlayerStateIfNeeded(PlayerRef player)
     {
         if (!runner.IsServer)
             return;
@@ -202,37 +204,59 @@ public class WaitingRoomManager : MonoBehaviour, INetworkRunnerCallbacks
         if (FindRoomPlayerState(player) != null)
             return;
 
+        if (pendingRoomPlayerStateSpawns.Contains(player))
+            return;
+
         if (roomPlayerStatePrefab == null)
         {
             SetStatus("RoomPlayerStatePrefab is not assigned");
             return;
         }
 
-        // Fusion 네트워크 오브젝트 생성
-        // 마지막 인자 player는 InputAuthority를 의미함
-        // 즉, 해당 플레이어가 이 RoomPlayerState에 대해 Ready 변경 요청을 할 수 있음
-        NetworkObject obj = runner.Spawn(
-            roomPlayerStatePrefab,
-            Vector3.zero,
-            Quaternion.identity,
-            player
-        );
+        pendingRoomPlayerStateSpawns.Add(player);
 
-        RoomPlayerState state = obj.GetComponent<RoomPlayerState>();
-
-        if (state == null)
+        try
         {
-            SetStatus("RoomPlayerState component is missing on the prefab");
-            return;
+            // Fusion may need a frame to finish loading registered prefabs.
+            NetworkObject obj = await runner.SpawnAsync(
+                roomPlayerStatePrefab,
+                Vector3.zero,
+                Quaternion.identity,
+                player
+            );
+
+            if (obj == null)
+            {
+                SetStatus("RoomPlayerState spawn failed");
+                return;
+            }
+
+            RoomPlayerState state = obj.GetComponent<RoomPlayerState>();
+
+            if (state == null)
+            {
+                SetStatus("RoomPlayerState component is missing on the prefab");
+                return;
+            }
+
+            // 방을 만든 사람, 즉 Host인지 표시
+            bool isHostPlayer = runner != null && player == runner.LocalPlayer;
+
+            // PlayerRef, Ready 초기값, Host 여부 설정
+            state.Initialize(player, isHostPlayer);
+
+            SetStatus($"Player state created: {player}");
+            UpdateAllUI();
         }
-
-        // 방을 만든 사람, 즉 Host인지 표시
-        bool isHostPlayer = player == runner.LocalPlayer;
-
-        // PlayerRef, Ready 초기값, Host 여부 설정
-        state.Initialize(player, isHostPlayer);
-
-        SetStatus($"Player state created: {player}");
+        catch (Exception exception)
+        {
+            SetStatus("RoomPlayerState spawn failed");
+            Debug.LogError($"[WaitingRoomManager] RoomPlayerState spawn failed for {player}: {exception}");
+        }
+        finally
+        {
+            pendingRoomPlayerStateSpawns.Remove(player);
+        }
     }
     
     private NetworkGameState FindNetworkGameState()
@@ -246,16 +270,16 @@ public class WaitingRoomManager : MonoBehaviour, INetworkRunnerCallbacks
 
     private NetworkGameState SpawnNetworkGameStateIfHost()
     {
-        if (runner == null)
-            return FindNetworkGameState();
-
-        if (!runner.IsServer)
-            return FindNetworkGameState();
-
         NetworkGameState existingState = FindNetworkGameState();
 
         if (existingState != null)
             return existingState;
+
+        if (runner == null)
+            return null;
+
+        if (!runner.IsServer)
+            return null;
 
         if (networkGameStatePrefab == null)
         {
@@ -263,30 +287,64 @@ public class WaitingRoomManager : MonoBehaviour, INetworkRunnerCallbacks
             return null;
         }
 
-        NetworkObject obj = runner.Spawn(
-            networkGameStatePrefab,
-            Vector3.zero,
-            Quaternion.identity
-        );
+        if (!pendingNetworkGameStateSpawn)
+            SpawnNetworkGameStateAsync();
 
-        if (obj == null)
+        return FindNetworkGameState();
+    }
+
+    private async void SpawnNetworkGameStateAsync()
+    {
+        if (pendingNetworkGameStateSpawn)
+            return;
+
+        if (runner == null || !runner.IsServer)
+            return;
+
+        if (networkGameStatePrefab == null)
+        {
+            SetStatus("NetworkGameStatePrefab is not assigned");
+            return;
+        }
+
+        pendingNetworkGameStateSpawn = true;
+
+        try
+        {
+            NetworkObject obj = await runner.SpawnAsync(
+                networkGameStatePrefab,
+                Vector3.zero,
+                Quaternion.identity
+            );
+
+            if (obj == null)
+            {
+                SetStatus("NetworkGameState spawn failed");
+                return;
+            }
+
+            gameState = obj.GetComponent<NetworkGameState>();
+
+            if (gameState == null)
+            {
+                SetStatus("NetworkGameState component is missing on prefab");
+                return;
+            }
+
+            gameState.SetWaiting();
+
+            SetStatus("NetworkGameState created");
+            UpdateAllUI();
+        }
+        catch (Exception exception)
         {
             SetStatus("NetworkGameState spawn failed");
-            return null;
+            Debug.LogError($"[WaitingRoomManager] NetworkGameState spawn failed: {exception}");
         }
-
-        gameState = obj.GetComponent<NetworkGameState>();
-
-        if (gameState == null)
+        finally
         {
-            SetStatus("NetworkGameState component is missing on prefab");
-            return null;
+            pendingNetworkGameStateSpawn = false;
         }
-
-        gameState.SetWaiting();
-
-        SetStatus("NetworkGameState created");
-        return gameState;
     }
 
     /// <summary>
@@ -343,7 +401,7 @@ public class WaitingRoomManager : MonoBehaviour, INetworkRunnerCallbacks
 
         if (state == null)
         {
-            SetStatus("NetworkGameState not found");
+            SetStatus("NetworkGameState is still loading");
             return;
         }
 
