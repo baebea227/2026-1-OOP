@@ -6,7 +6,7 @@ public class HeavyObject : InteractableObject
 {
     [Header("Heavy Settings")]
     public int requiredPushers = 2;
-    public float scriptedMoveSpeed = 1.5f;
+    public float scriptedMoveSpeed = 2f;
     public float pushHoldDuration = 0.25f;
     [Range(0f, 1f)]
     [SerializeField] private float pushIntentDotThreshold = 0.65f;
@@ -25,6 +25,7 @@ public class HeavyObject : InteractableObject
     private const int NegativeLocalZ = 3;
     private const int DirectionCount = 4;
     private const float minDirectionSqr = 0.0001f;
+    private const float minCarryDeltaSqr = 0.00000001f;
 
     private static readonly RigidbodyConstraints ScriptedMovementConstraints =
         RigidbodyConstraints.FreezePositionY | RigidbodyConstraints.FreezeRotation;
@@ -308,17 +309,46 @@ public class HeavyObject : InteractableObject
         if (moveDistance <= 0f)
             return;
 
-        Vector3 nextPosition = rb.position + moveDirection * moveDistance;
+        Vector3 previousPosition = rb.position;
+        Vector3 nextPosition = previousPosition + moveDirection * moveDistance;
         if (!TryApplyMovementRange(ref nextPosition))
             return;
 
+        Vector3 actualDelta = nextPosition - previousPosition;
         rb.MovePosition(nextPosition);
+
+        if (actualDelta.sqrMagnitude > minCarryDeltaSqr)
+            CarryActivePushers(actualDelta, now);
     }
 
     private void ActivateScriptedMove(int directionIndex, float now)
     {
         activeDirection = directionIndex;
         activeMoveUntil = now + Mathf.Max(0f, pushHoldDuration);
+    }
+
+    private void CarryActivePushers(Vector3 delta, float now)
+    {
+        delta.y = 0f;
+        if (delta.sqrMagnitude <= minCarryDeltaSqr)
+            return;
+
+        foreach (var entry in pushSamples)
+        {
+            PushSample sample = entry.Value;
+            if (sample.directionIndex != activeDirection || now - sample.time > pushWindow)
+                continue;
+
+            NetworkObject playerObject = Runner.GetPlayerObject(entry.Key);
+            if (playerObject == null)
+                continue;
+
+            PlayerMovement movement = playerObject.GetComponent<PlayerMovement>();
+            if (movement == null)
+                continue;
+
+            movement.ApplyHeavyObjectCarry(delta);
+        }
     }
 
     private bool HasAuthorizedMovement(float now)

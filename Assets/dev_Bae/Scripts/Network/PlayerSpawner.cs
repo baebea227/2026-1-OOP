@@ -83,6 +83,7 @@ public class PlayerSpawner : MonoBehaviour, INetworkRunnerCallbacks
             runner.Despawn(obj);
 
         spawnedPlayers.Remove(player);
+        SyncPlayerIdentities(runner);
     }
 
     private void SpawnPlayerIfNeeded(NetworkRunner runner, PlayerRef player)
@@ -99,8 +100,13 @@ public class PlayerSpawner : MonoBehaviour, INetworkRunnerCallbacks
         if (obj == null)
             return;
 
+        PlayerIdentity identity = obj.GetComponent<PlayerIdentity>();
+        if (identity != null)
+            identity.Initialize(GetPlayerNumber(runner, player));
+
         spawnedPlayers[player] = obj;
         runner.SetPlayerObject(player, obj);
+        SyncPlayerIdentities(runner);
     }
 
     private bool IsGameSceneLoaded()
@@ -116,6 +122,8 @@ public class PlayerSpawner : MonoBehaviour, INetworkRunnerCallbacks
 
         foreach (PlayerRef player in activePlayers)
             SpawnPlayerIfNeeded(runner, player);
+
+        SyncPlayerIdentities(runner);
     }
 
     private List<PlayerRef> GetActivePlayersSnapshot(NetworkRunner runner)
@@ -139,7 +147,43 @@ public class PlayerSpawner : MonoBehaviour, INetworkRunnerCallbacks
             Debug.LogWarning("[PlayerSpawner] ActivePlayers changed while being read: " + exception.Message);
         }
 
+        players.Sort((a, b) => a.RawEncoded.CompareTo(b.RawEncoded));
         return players;
+    }
+
+    private int GetPlayerNumber(NetworkRunner runner, PlayerRef targetPlayer)
+    {
+        List<PlayerRef> activePlayers = GetActivePlayersSnapshot(runner);
+
+        for (int i = 0; i < activePlayers.Count; i++)
+        {
+            if (activePlayers[i] == targetPlayer)
+                return i + 1;
+        }
+
+        return 1;
+    }
+
+    private void SyncPlayerIdentities(NetworkRunner runner)
+    {
+        if (runner == null || !runner.IsServer)
+            return;
+
+        List<PlayerRef> activePlayers = GetActivePlayersSnapshot(runner);
+        int displayNumber = 1;
+
+        for (int i = 0; i < activePlayers.Count; i++)
+        {
+            PlayerRef player = activePlayers[i];
+            if (!spawnedPlayers.TryGetValue(player, out NetworkObject obj) || obj == null)
+                continue;
+
+            PlayerIdentity identity = obj.GetComponent<PlayerIdentity>();
+            if (identity != null)
+                identity.Initialize(displayNumber);
+
+            displayNumber++;
+        }
     }
 
     public void OnInput(NetworkRunner runner, NetworkInput input) { }

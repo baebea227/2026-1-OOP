@@ -36,10 +36,6 @@ public class PlayerSplitScreenCamera : NetworkBehaviour
     public float distance = 4f;
     public float sideOffset = 0.2f;
     public float followSmoothTime = 0.04f;
-    public float collisionRadius = 0.25f;
-    public float collisionPadding = 0.1f;
-    [SerializeField] private LayerMask cameraCollisionMask =
-        Physics.DefaultRaycastLayers & ~(CollisionPolicyBootstrap.PlayerBodyMask | CollisionPolicyBootstrap.PushableMask);
 
     [Header("Split Screen UI")]
     public bool showSplitSeparator = true;
@@ -65,13 +61,11 @@ public class PlayerSplitScreenCamera : NetworkBehaviour
     private PlayerMovement playerMovement;
     private PlayerGrabHandler grabHandler;
     private Transform target;
-    private Collider[] ownerColliders;
     private Vector3 followVelocity;
     private Transform originalParent;
     private Texture2D crosshairTexture;
     private readonly string[] controlHintKeys = new string[MaxControlHintCount];
     private readonly string[] controlHintActions = new string[MaxControlHintCount];
-    private readonly RaycastHit[] cameraCollisionHits = new RaycastHit[16];
     private GUIStyle controlHintKeyStyle;
     private GUIStyle controlHintActionStyle;
     private int cachedCrosshairDiameter;
@@ -95,10 +89,6 @@ public class PlayerSplitScreenCamera : NetworkBehaviour
         cam = GetComponent<Camera>();
         target = GetComponentInParent<NetworkObject>()?.transform;
         originalParent = transform.parent;
-
-        if (cameraCollisionMask.value == 0)
-            cameraCollisionMask = Physics.DefaultRaycastLayers &
-                ~(CollisionPolicyBootstrap.PlayerBodyMask | CollisionPolicyBootstrap.PushableMask);
     }
 
     public override void Spawned()
@@ -109,9 +99,6 @@ public class PlayerSplitScreenCamera : NetworkBehaviour
 
         if (target == null)
             target = GetComponentInParent<NetworkObject>()?.transform;
-
-        if (target != null)
-            ownerColliders = target.GetComponentsInChildren<Collider>();
 
         transform.SetParent(null, true);
         initialized = false;
@@ -165,17 +152,16 @@ public class PlayerSplitScreenCamera : NetworkBehaviour
             pivot - orbitRotation * Vector3.forward * distance +
             orbitRotation * Vector3.right * sideOffset;
 
-        Vector3 correctedPosition = ResolveCameraCollision(pivot, desiredPosition);
         if (!initialized)
         {
-            transform.position = correctedPosition;
+            transform.position = desiredPosition;
             initialized = true;
         }
         else
         {
             transform.position = Vector3.SmoothDamp(
                 transform.position,
-                correctedPosition,
+                desiredPosition,
                 ref followVelocity,
                 followSmoothTime);
         }
@@ -654,52 +640,4 @@ public class PlayerSplitScreenCamera : NetworkBehaviour
         return crosshairTexture;
     }
 
-    private Vector3 ResolveCameraCollision(Vector3 pivot, Vector3 desiredPosition)
-    {
-        Vector3 toCamera = desiredPosition - pivot;
-        float targetDistance = toCamera.magnitude;
-        if (targetDistance <= 0.0001f)
-            return desiredPosition;
-
-        Vector3 direction = toCamera / targetDistance;
-        float nearestDistance = targetDistance;
-        if (Runner != null)
-        {
-            int hitCount = Runner.GetPhysicsScene().SphereCast(
-                pivot,
-                collisionRadius,
-                direction,
-                cameraCollisionHits,
-                targetDistance,
-                cameraCollisionMask.value,
-                QueryTriggerInteraction.Ignore);
-
-            for (int i = 0; i < hitCount; i++)
-            {
-                RaycastHit hit = cameraCollisionHits[i];
-                if (IsOwnerCollider(hit.collider))
-                    continue;
-
-                if (hit.distance < nearestDistance)
-                    nearestDistance = hit.distance;
-            }
-        }
-
-        float resolvedDistance = Mathf.Max(0f, nearestDistance - collisionPadding);
-        return pivot + direction * resolvedDistance;
-    }
-
-    private bool IsOwnerCollider(Collider candidate)
-    {
-        if (ownerColliders == null || candidate == null)
-            return false;
-
-        foreach (Collider ownerCollider in ownerColliders)
-        {
-            if (ownerCollider == candidate)
-                return true;
-        }
-
-        return false;
-    }
 }
