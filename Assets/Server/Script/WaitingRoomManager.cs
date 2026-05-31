@@ -52,8 +52,19 @@ public class WaitingRoomManager : MonoBehaviour, INetworkRunnerCallbacks
     [SerializeField] private TMP_Text readyButtonText;
     [SerializeField] private TMP_Text startGameButtonText;
 
+    [Header("Player State Icons")]
+    [SerializeField] private string joinedPlayerIconResourcePath = "WaitingRoomIcons/blue_filled_icon";
+    [SerializeField] private string emptyPlayerIconResourcePath = "WaitingRoomIcons/blue_outline_icon";
+    [SerializeField] private Vector2 playerStateIconSize = new Vector2(36f, 36f);
+    [SerializeField] private float playerStateIconGap = 12f;
+    [SerializeField] private List<Image> playerStateIcons = new List<Image>();
+
     private const int DefaultMaxPlayers = 2;
     private const float CopyButtonGap = 8f;
+
+    private Sprite joinedPlayerIconSprite;
+    private Sprite emptyPlayerIconSprite;
+    private bool playerStateIconsLoaded;
 
     // 현재 로컬 플레이어의 RoomPlayerState
     // 즉, 내가 Ready 버튼을 눌렀을 때 바꿀 대상
@@ -581,15 +592,19 @@ public class WaitingRoomManager : MonoBehaviour, INetworkRunnerCallbacks
         List<RoomPlayerState> states = GetRoomPlayerStates();
         List<TMP_Text> textSlots = GetPlayerTextSlots();
         int requiredPlayers = GetRequiredPlayerCount();
+        int presentPlayerCount = Mathf.Max(states.Count, GetCurrentPlayerCount());
 
         for (int i = 0; i < textSlots.Count; i++)
         {
             TMP_Text textSlot = textSlots[i];
+            bool isRequiredSlot = i < requiredPlayers;
 
             if (textSlot == null)
                 continue;
 
-            if (i < requiredPlayers)
+            SetPlayerStateIcon(i, textSlot, isRequiredSlot, i < presentPlayerCount);
+
+            if (isRequiredSlot)
                 textSlot.text = $"Player {i + 1} - Not Ready";
             else
                 textSlot.text = "";
@@ -609,11 +624,139 @@ public class WaitingRoomManager : MonoBehaviour, INetworkRunnerCallbacks
             string localText = state.Object != null && state.Object.HasInputAuthority ? " (You)" : "";
 
             textSlot.text = $"{playerText} - {roleText} - {readyText}{localText}";
+            SetPlayerStateIcon(i, textSlot, true, true);
         }
     }
 
     /// <summary>
-    /// Ready 버튼과 Start Game 버튼 상태 갱신
+    /// Keeps the player presence icon next to each player state text slot.
+    /// </summary>
+    private void SetPlayerStateIcon(int index, TMP_Text textSlot, bool isVisible, bool isPlayerPresent)
+    {
+        Image icon = GetOrCreatePlayerStateIcon(index, textSlot);
+
+        if (icon == null)
+            return;
+
+        icon.gameObject.SetActive(isVisible);
+
+        if (!isVisible)
+            return;
+
+        LoadPlayerStateIconsIfNeeded();
+
+        icon.sprite = isPlayerPresent ? joinedPlayerIconSprite : emptyPlayerIconSprite;
+        icon.enabled = icon.sprite != null;
+        icon.preserveAspect = true;
+        icon.raycastTarget = false;
+        PositionPlayerStateIcon(icon.rectTransform);
+    }
+
+    private Image GetOrCreatePlayerStateIcon(int index, TMP_Text textSlot)
+    {
+        if (textSlot == null)
+            return null;
+
+        if (playerStateIcons == null)
+            playerStateIcons = new List<Image>();
+
+        while (playerStateIcons.Count <= index)
+            playerStateIcons.Add(null);
+
+        Image icon = playerStateIcons[index];
+
+        if (icon != null)
+            return icon;
+
+        Transform existingIcon = textSlot.transform.Find($"PlayerStateIcon_{index + 1}");
+
+        if (existingIcon != null)
+            icon = existingIcon.GetComponent<Image>();
+
+        if (icon == null)
+        {
+            GameObject iconObject = new GameObject(
+                $"PlayerStateIcon_{index + 1}",
+                typeof(RectTransform),
+                typeof(CanvasRenderer),
+                typeof(Image)
+            );
+
+            iconObject.layer = textSlot.gameObject.layer;
+            iconObject.transform.SetParent(textSlot.transform, false);
+            icon = iconObject.GetComponent<Image>();
+        }
+
+        icon.color = Color.white;
+        icon.raycastTarget = false;
+        icon.preserveAspect = true;
+        PositionPlayerStateIcon(icon.rectTransform);
+        playerStateIcons[index] = icon;
+
+        return icon;
+    }
+
+    private void PositionPlayerStateIcon(RectTransform iconRect)
+    {
+        if (iconRect == null)
+            return;
+
+        iconRect.anchorMin = new Vector2(0f, 0.5f);
+        iconRect.anchorMax = new Vector2(0f, 0.5f);
+        iconRect.pivot = new Vector2(1f, 0.5f);
+        iconRect.sizeDelta = playerStateIconSize.x > 0f && playerStateIconSize.y > 0f
+            ? playerStateIconSize
+            : new Vector2(36f, 36f);
+        iconRect.anchoredPosition = new Vector2(-playerStateIconGap, 0f);
+    }
+
+    private void LoadPlayerStateIconsIfNeeded()
+    {
+        if (playerStateIconsLoaded)
+            return;
+
+        playerStateIconsLoaded = true;
+        joinedPlayerIconSprite = LoadPlayerStateIconSprite(
+            string.IsNullOrEmpty(joinedPlayerIconResourcePath)
+                ? "WaitingRoomIcons/blue_filled_icon"
+                : joinedPlayerIconResourcePath
+        );
+
+        emptyPlayerIconSprite = LoadPlayerStateIconSprite(
+            string.IsNullOrEmpty(emptyPlayerIconResourcePath)
+                ? "WaitingRoomIcons/blue_outline_icon"
+                : emptyPlayerIconResourcePath
+        );
+    }
+
+    private Sprite LoadPlayerStateIconSprite(string resourcePath)
+    {
+        if (string.IsNullOrEmpty(resourcePath))
+            return null;
+
+        Sprite sprite = Resources.Load<Sprite>(resourcePath);
+
+        if (sprite != null)
+            return sprite;
+
+        Texture2D texture = Resources.Load<Texture2D>(resourcePath);
+
+        if (texture == null)
+        {
+            Debug.LogWarning($"[WaitingRoomManager] Player state icon not found in Resources: {resourcePath}");
+            return null;
+        }
+
+        return Sprite.Create(
+            texture,
+            new Rect(0f, 0f, texture.width, texture.height),
+            new Vector2(0.5f, 0.5f),
+            100f
+        );
+    }
+
+    /// <summary>
+    /// Ready button and Start Game button state refresh.
     /// </summary>
     private void UpdateButtonUI()
     {
