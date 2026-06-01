@@ -11,6 +11,7 @@ public class StageManager : NetworkBehaviour
     bool stageActive;
 
     public GameObject clearUI;
+    public Animator clearUIAnim;
 
     [SerializeField] SceneFlowManager sceneFlowManager;
 
@@ -94,6 +95,7 @@ public class StageManager : NetworkBehaviour
     void ShowClearUI()
     {
         clearUI.SetActive(true);
+        clearUIAnim.SetTrigger("doClear");
         Invoke("HideClearUI", 2.9f);
         Invoke("MoveToWaitingRoom", 3);
     }
