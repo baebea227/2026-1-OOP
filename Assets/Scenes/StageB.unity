@@ -240,12 +240,10 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 0398936aab4bf7440a51012379e7adc4, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::StageManager
-  maxPlayer: 0
-  stagePrefabs: []
+  curStage: {fileID: 913596584}
   clearUI: {fileID: 1671219419}
   clearUIAnim: {fileID: 681780776}
   sceneFlowManager: {fileID: 0}
-  stageSelect: []
 --- !u!4 &620897608
 Transform:
   m_ObjectHideFlags: 0
@@ -624,6 +622,17 @@ PrefabInstance:
       insertIndex: -1
       addedObject: {fileID: 0}
   m_SourcePrefab: {fileID: 100100000, guid: 44b7db608f4f9664b853b1f49a9561b1, type: 3}
+--- !u!114 &913596584 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 3298494554319258613, guid: 44b7db608f4f9664b853b1f49a9561b1, type: 3}
+  m_PrefabInstance: {fileID: 913596583}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 36464b9edaa31d04a8ffd167a44bbf65, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Stage
 --- !u!1 &1671219419
 GameObject:
   m_ObjectHideFlags: 0

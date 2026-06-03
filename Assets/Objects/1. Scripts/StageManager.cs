@@ -1,79 +1,40 @@
+using System;
 using Fusion;
 using Unity.VisualScripting;
 using UnityEngine;
 
 public class StageManager : NetworkBehaviour
 {
-    [SerializeField] int maxPlayer;
-    [SerializeField] GameObject[] stagePrefabs;
-    Stage selectedStage;
-    int curStageIndex;
-    bool stageActive;
+    public Stage curStage;
+    bool clearState;
 
     public GameObject clearUI;
     public Animator clearUIAnim;
 
     [SerializeField] SceneFlowManager sceneFlowManager;
 
-    [SerializeField] GameObject[] stageSelect;
-    Transform[] stageSelectPos;
-
     void Awake()
     {
-        stageActive = false;
+        clearState = false;
+        FindReferences();
     }
 
     void Start()
     {
-        FindReferences();
-
-        stageSelectPos = new Transform[stageSelect.Length];
-        for(int i=0; i<stageSelect.Length; i++)
-        {
-            stageSelectPos[i] = stageSelect[i].transform;
-        }
+        curStage.StageStart();
     }
 
     private void FindReferences()
     {
-        if (sceneFlowManager == null)
-            sceneFlowManager = FindAnyObjectByType<SceneFlowManager>(FindObjectsInactive.Include);
-    }
-
-    void SetStage(int index)
-    {
-        // curStageIndex = index;
-
-        // if (stageList != null &&
-        //     curStageIndex >= 0 &&
-        //     stageList[curStageIndex] != null)
-        // {
-        //     stageActive = true;
-        //     stageList[curStageIndex].gameObject.SetActive(stageActive);
-        //     stageList[curStageIndex].StageStart();
-        // }
-
-        if (Runner.IsServer)
+        if(sceneFlowManager == null)
         {
-            selectedStage = Runner.Spawn(
-                stagePrefabs[index],
-                new Vector3(3.5f, -0.5f, 3),
-                Quaternion.identity,
-                inputAuthority: null
-            ).GetComponent<Stage>();
-
-            selectedStage.StageStart();
-        }
+            sceneFlowManager = FindAnyObjectByType<SceneFlowManager>(FindObjectsInactive.Include);
+        }            
     }
-
-    [Rpc(RpcSources.All, RpcTargets.All)]
-    void RPC_SetStage(int i) => SetStage(i);
 
     void StageClearCheck()
     {
-        if (selectedStage != null &&
-            curStageIndex >= 0 &&
-            selectedStage.IsCleared)
+        if (curStage != null && curStage.IsCleared)
         {
             RPC_ClearProcess();
         }
@@ -82,13 +43,8 @@ public class StageManager : NetworkBehaviour
     [Rpc(RpcSources.All, RpcTargets.All)]
     void RPC_ClearProcess()
     {
-        // 임시 클리어 액션
-        if(selectedStage != null)
-        {
-            selectedStage.StageEnd();   
-        }
-        // stageActive = false;
-        // stageList[curStageIndex].gameObject.SetActive(stageActive);
+        clearState = curStage.IsCleared;
+        curStage.StageEnd();   
         ShowClearUI();
     }
 
@@ -115,45 +71,9 @@ public class StageManager : NetworkBehaviour
 
     void Update()
     {
-        if (stageActive)
+        if (!clearState)
         {
             StageClearCheck();
-        }
-        else
-        {
-            SelectStage();
-        }
-    }
-
-    void SelectStage()
-    {
-        for(int i=0; i< stageSelectPos.Length; i++)
-        {
-            int cnt = 0;
-            var checker = Physics.OverlapSphere(stageSelectPos[i].position, 1.5f, -1);
-            foreach(var entity in checker)
-            {
-                if (entity.CompareTag("Player"))
-                {
-                    cnt++;
-                }
-            }
-            if(cnt == maxPlayer)
-            {
-                RPC_HideSelecter();
-                SetStage(i);
-                stageActive = true;
-                break;
-            }
-        }
-    }
-
-    [Rpc(RpcSources.All, RpcTargets.All)]
-    void RPC_HideSelecter()
-    {
-        for(int i=0; i<stageSelect.Length; i++)
-        {
-            stageSelect[i].SetActive(false);
         }
     }
 }
