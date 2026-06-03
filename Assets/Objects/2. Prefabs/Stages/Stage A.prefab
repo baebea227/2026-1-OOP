@@ -2258,6 +2258,7 @@ Transform:
   - {fileID: 4880671699374700925}
   - {fileID: 1566196263495003078}
   - {fileID: 7493213619815433519}
+  - {fileID: 4905666511593967206}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!114 &3298494554319258613
@@ -2339,6 +2340,7 @@ MonoBehaviour:
   - {fileID: 3440808096690466406}
   - {fileID: 4742963532450241426}
   - {fileID: 1655940747540571393}
+  - {fileID: 4058956042680612284}
   NetworkedBehaviours:
   - {fileID: 3298494554319258613}
   - {fileID: 5236334218467456421}
@@ -6980,6 +6982,83 @@ MonoBehaviour:
   m_Script: {fileID: -1552182283, guid: e725a070cec140c4caffb81624c8c787, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Fusion.Runtime.dll::Fusion.NetworkObject
+--- !u!1001 &8517218264674174712
+PrefabInstance:
+  m_ObjectHideFlags: 0
+  serializedVersion: 2
+  m_Modification:
+    serializedVersion: 3
+    m_TransformParent: {fileID: 4412131605042203536}
+    m_Modifications:
+    - target: {fileID: 3613946637648988318, guid: 04c64f401396be04a9a13f1dc45f3143, type: 3}
+      propertyPath: m_LocalPosition.x
+      value: -4.4777584
+      objectReference: {fileID: 0}
+    - target: {fileID: 3613946637648988318, guid: 04c64f401396be04a9a13f1dc45f3143, type: 3}
+      propertyPath: m_LocalPosition.y
+      value: 0.6000003
+      objectReference: {fileID: 0}
+    - target: {fileID: 3613946637648988318, guid: 04c64f401396be04a9a13f1dc45f3143, type: 3}
+      propertyPath: m_LocalPosition.z
+      value: 12.370631
+      objectReference: {fileID: 0}
+    - target: {fileID: 3613946637648988318, guid: 04c64f401396be04a9a13f1dc45f3143, type: 3}
+      propertyPath: m_LocalRotation.w
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 3613946637648988318, guid: 04c64f401396be04a9a13f1dc45f3143, type: 3}
+      propertyPath: m_LocalRotation.x
+      value: -0
+      objectReference: {fileID: 0}
+    - target: {fileID: 3613946637648988318, guid: 04c64f401396be04a9a13f1dc45f3143, type: 3}
+      propertyPath: m_LocalRotation.y
+      value: -0
+      objectReference: {fileID: 0}
+    - target: {fileID: 3613946637648988318, guid: 04c64f401396be04a9a13f1dc45f3143, type: 3}
+      propertyPath: m_LocalRotation.z
+      value: -0
+      objectReference: {fileID: 0}
+    - target: {fileID: 3613946637648988318, guid: 04c64f401396be04a9a13f1dc45f3143, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 3613946637648988318, guid: 04c64f401396be04a9a13f1dc45f3143, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 3613946637648988318, guid: 04c64f401396be04a9a13f1dc45f3143, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 5649611669085139780, guid: 04c64f401396be04a9a13f1dc45f3143, type: 3}
+      propertyPath: SortKey
+      value: 822039381
+      objectReference: {fileID: 0}
+    - target: {fileID: 6002483727276709230, guid: 04c64f401396be04a9a13f1dc45f3143, type: 3}
+      propertyPath: m_Name
+      value: PressurePlate
+      objectReference: {fileID: 0}
+    m_RemovedComponents: []
+    m_RemovedGameObjects: []
+    m_AddedGameObjects: []
+    m_AddedComponents: []
+  m_SourcePrefab: {fileID: 100100000, guid: 04c64f401396be04a9a13f1dc45f3143, type: 3}
+--- !u!114 &4058956042680612284 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 5649611669085139780, guid: 04c64f401396be04a9a13f1dc45f3143, type: 3}
+  m_PrefabInstance: {fileID: 8517218264674174712}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: -1552182283, guid: e725a070cec140c4caffb81624c8c787, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Fusion.Runtime.dll::Fusion.NetworkObject
+--- !u!4 &4905666511593967206 stripped
+Transform:
+  m_CorrespondingSourceObject: {fileID: 3613946637648988318, guid: 04c64f401396be04a9a13f1dc45f3143, type: 3}
+  m_PrefabInstance: {fileID: 8517218264674174712}
+  m_PrefabAsset: {fileID: 0}
 --- !u!1001 &8715038679386238751
 PrefabInstance:
   m_ObjectHideFlags: 0
