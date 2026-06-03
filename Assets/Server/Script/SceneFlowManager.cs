@@ -19,6 +19,7 @@ public class SceneFlowManager : MonoBehaviour
     [SerializeField] private string lobbyKey = "Lobby";
     [SerializeField] private string waitingRoomKey = "WaitingRoom";
     [SerializeField] private string gameKey = "Game";
+    [SerializeField] private string scenesFolderPath = "Assets/Scenes";
 
     private Dictionary<string, int> sceneMap;
 
@@ -111,6 +112,11 @@ public class SceneFlowManager : MonoBehaviour
         LoadSceneNetwork(gameKey);
     }
 
+    public void LoadStageSceneNetwork(string stageKey)
+    {
+        LoadSceneNetwork(stageKey);
+    }
+
     public void LoadWaitingRoomSceneNetwork()
     {
         LoadSceneNetwork(waitingRoomKey);
@@ -171,9 +177,41 @@ public class SceneFlowManager : MonoBehaviour
 
         if (!sceneMap.TryGetValue(key, out int buildIndex))
         {
-            Debug.LogError("[SceneFlowManager] Scene key not registered: " + key);
-            return -1;
+            buildIndex = GetBuildIndexFromScenePath(key);
+
+            if (buildIndex < 0)
+            {
+                Debug.LogError("[SceneFlowManager] Scene key not registered: " + key);
+                return -1;
+            }
         }
+
+        return buildIndex;
+    }
+
+    private int GetBuildIndexFromScenePath(string key)
+    {
+        if (string.IsNullOrWhiteSpace(key))
+            return -1;
+
+        string scenePath = key.Replace('\\', '/').Trim();
+
+        if (!scenePath.EndsWith(".unity", System.StringComparison.OrdinalIgnoreCase))
+            scenePath += ".unity";
+
+        if (!scenePath.Contains("/"))
+        {
+            string folderPath = string.IsNullOrWhiteSpace(scenesFolderPath)
+                ? "Assets/Scenes"
+                : scenesFolderPath.Trim().TrimEnd('/', '\\').Replace('\\', '/');
+
+            scenePath = $"{folderPath}/{scenePath}";
+        }
+
+        int buildIndex = SceneUtility.GetBuildIndexByScenePath(scenePath);
+
+        if (buildIndex < 0)
+            Debug.LogWarning($"[SceneFlowManager] Scene path is not enabled in Build Settings: {scenePath}");
 
         return buildIndex;
     }
