@@ -1823,9 +1823,17 @@ MonoBehaviour:
     buildIndex: 1
   - key: Game
     buildIndex: 2
+  - key: StageA
+    buildIndex: 2
+  - key: StageB
+    buildIndex: 3
   lobbyKey: Lobby
   waitingRoomKey: WaitingRoom
   gameKey: Game
+  gameplaySceneKeys:
+  - Game
+  - StageA
+  - StageB
 --- !u!4 &1449713391
 Transform:
   m_ObjectHideFlags: 0
