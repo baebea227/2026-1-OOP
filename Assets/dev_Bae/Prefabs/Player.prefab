@@ -187,12 +187,19 @@ MonoBehaviour:
   distance: 4
   sideOffset: 0.2
   followSmoothTime: 0.04
-  collisionRadius: 0.25
-  collisionPadding: 0.1
+  showSplitSeparator: 1
+  splitSeparatorWidth: 4
+  splitSeparatorNormalAlpha: 0.75
+  splitSeparatorMenuAlpha: 0.22
   showCrosshair: 1
   crosshairColor: {r: 1, g: 1, b: 1, a: 1}
   crosshairDiameter: 18
   crosshairThickness: 2
+  showControlHints: 1
+  controlHintTextColor: {r: 1, g: 1, b: 1, a: 1}
+  controlHintBackgroundColor: {r: 0, g: 0, b: 0, a: 0.65}
+  controlHintKeyColor: {r: 1, g: 1, b: 1, a: 1}
+  controlHintKeyTextColor: {r: 0, g: 0, b: 0, a: 1}
 --- !u!1 &7009954332504466027
 GameObject:
   m_ObjectHideFlags: 0
@@ -285,12 +292,12 @@ PrefabInstance:
       value: Player
       objectReference: {fileID: 0}
     - target: {fileID: 919132149155446097, guid: f1e8e1bfafe7fa241ba6b4181f3eba85, type: 3}
-      propertyPath: m_TagString
-      value: Player
-      objectReference: {fileID: 0}
-    - target: {fileID: 919132149155446097, guid: f1e8e1bfafe7fa241ba6b4181f3eba85, type: 3}
       propertyPath: m_Layer
       value: 8
+      objectReference: {fileID: 0}
+    - target: {fileID: 919132149155446097, guid: f1e8e1bfafe7fa241ba6b4181f3eba85, type: 3}
+      propertyPath: m_TagString
+      value: Player
       objectReference: {fileID: 0}
     - target: {fileID: 2775862123970177323, guid: f1e8e1bfafe7fa241ba6b4181f3eba85, type: 3}
       propertyPath: 'm_Materials.Array.data[0]'
@@ -346,6 +353,9 @@ PrefabInstance:
     - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: f1e8e1bfafe7fa241ba6b4181f3eba85, type: 3}
       insertIndex: -1
       addedObject: {fileID: 8032373281288906341}
+    - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: f1e8e1bfafe7fa241ba6b4181f3eba85, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 2294817347123456789}
   m_SourcePrefab: {fileID: 100100000, guid: f1e8e1bfafe7fa241ba6b4181f3eba85, type: 3}
 --- !u!1 &3983701581572670814 stripped
 GameObject:
@@ -430,6 +440,7 @@ MonoBehaviour:
   - {fileID: -6943976382128988104}
   - {fileID: -3663362260947627677}
   - {fileID: 8032373281288906341}
+  - {fileID: 2294817347123456789}
   - {fileID: 7109324480192042591}
   ForceRemoteRenderTimeframe: 0
 --- !u!114 &-2861487120538402117
@@ -466,15 +477,22 @@ MonoBehaviour:
   pushProbeMask:
     serializedVersion: 2
     m_Bits: 3584
+  heavyPushProbeMask:
+    serializedVersion: 2
+    m_Bits: 1024
   pushProbeRadius: 0.25
   pushProbeDistance: 0.45
   blockedPushSlowdown: 0
+  pushingSpeedMultiplier: 1
+  pushingAnimationInputScale: 0.5
   walkSpeed: 2
   runSpeed: 5
   sprintSpeed: 8
   turnSpeed: 720
   gravity: -9.81
   jumpHeight: 1.5
+  stepRiseVelocityTolerance: 0.01
+  stepGroundCheckDistance: 0.12
   _IsFalling:
     _value: 0
   _MoveInput: {x: 0, y: 0}
@@ -482,6 +500,10 @@ MonoBehaviour:
     _value: 0
   _IsJumping:
     _value: 0
+  _IsPushing:
+    _value: 0
+  _CameraYaw: 0
+  _CameraPitch: 0
 --- !u!114 &3622289007746343646
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -548,6 +570,22 @@ MonoBehaviour:
   braking: 10
   maxSpeed: 2
   rotationSpeed: 15
+--- !u!114 &2294817347123456789
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3983701581572670814}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2b8fb3858bb4d1d4d85f52c3e6a9a6d9, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::PlayerIdentity
+  playerMaterials:
+  - {fileID: 2100000, guid: f4fb8c083a36ec44294f9eabd63bd1f1, type: 2}
+  - {fileID: 2100000, guid: e2040610130a73245aedc9fb9f8d9718, type: 2}
+  _PlayerNumber: 0
 --- !u!4 &4324339476860854244 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: -8679921383154817045, guid: f1e8e1bfafe7fa241ba6b4181f3eba85, type: 3}
