@@ -124,7 +124,7 @@ public class PlayerMovement : NetworkBehaviour
             out bool isPushingHeavyObject);
         IsPushing = isPushingHeavyObject;
 
-        bool sprinting = !isPushingHeavyObject && input.isSprinting && input.moveInput.y > 0;
+        bool sprinting = !isPushingHeavyObject && input.isSprinting && input.moveInput.sqrMagnitude > 0.0001f;
         IsSprinting = sprinting;
 
         float desiredMaxSpeed = 0f;

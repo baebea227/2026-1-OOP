@@ -19,6 +19,7 @@ public class SceneFlowManager : MonoBehaviour
     [SerializeField] private string lobbyKey = "Lobby";
     [SerializeField] private string waitingRoomKey = "WaitingRoom";
     [SerializeField] private string gameKey = "Game";
+    [SerializeField] private List<string> gameplaySceneKeys = new List<string> { "Game", "StageA", "StageB" };
     [SerializeField] private string scenesFolderPath = "Assets/Scenes";
 
     private Dictionary<string, int> sceneMap;
@@ -72,7 +73,22 @@ public class SceneFlowManager : MonoBehaviour
 
     public bool IsGameSceneLoaded()
     {
-        return IsSceneLoaded(gameKey);
+        if (IsSceneLoaded(gameKey))
+            return true;
+
+        if (gameplaySceneKeys == null)
+            return false;
+
+        foreach (string gameplaySceneKey in gameplaySceneKeys)
+        {
+            if (string.IsNullOrWhiteSpace(gameplaySceneKey))
+                continue;
+
+            if (IsSceneLoaded(gameplaySceneKey))
+                return true;
+        }
+
+        return false;
     }
 
     public bool IsSceneLoaded(string key)
