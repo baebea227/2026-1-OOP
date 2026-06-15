@@ -173,26 +173,10 @@ public class PlayerMovement : NetworkBehaviour
         if (delta.sqrMagnitude <= minCarryDeltaSqr)
             return;
 
-        Vector3 previousPosition = transform.position;
-
         if (characterController != null && characterController.enabled)
             characterController.Move(delta);
         else
             transform.position += delta;
-
-        Vector3 appliedDelta = transform.position - previousPosition;
-        appliedDelta.y = 0f;
-        if (appliedDelta.sqrMagnitude <= minCarryDeltaSqr || cc == null)
-            return;
-
-        float inverseDeltaTime = Runner != null && Runner.DeltaTime > 0f
-            ? 1f / Runner.DeltaTime
-            : 0f;
-
-        Vector3 velocity = cc.Velocity;
-        velocity.x += appliedDelta.x * inverseDeltaTime;
-        velocity.z += appliedDelta.z * inverseDeltaTime;
-        cc.Velocity = velocity;
     }
 
     private Vector3 ResolvePushProbe(
