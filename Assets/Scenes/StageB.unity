@@ -427,6 +427,10 @@ PrefabInstance:
     serializedVersion: 3
     m_TransformParent: {fileID: 0}
     m_Modifications:
+    - target: {fileID: 436749427907718233, guid: 44b7db608f4f9664b853b1f49a9561b1, type: 3}
+      propertyPath: m_LocalPosition.y
+      value: 7.49
+      objectReference: {fileID: 0}
     - target: {fileID: 1004132172994944760, guid: 44b7db608f4f9664b853b1f49a9561b1, type: 3}
       propertyPath: SortKey
       value: 4254895896
@@ -435,9 +439,33 @@ PrefabInstance:
       propertyPath: SortKey
       value: 3562063287
       objectReference: {fileID: 0}
+    - target: {fileID: 1229331247388762567, guid: 44b7db608f4f9664b853b1f49a9561b1, type: 3}
+      propertyPath: m_LocalPosition.x
+      value: 3
+      objectReference: {fileID: 0}
+    - target: {fileID: 1553263857896824322, guid: 44b7db608f4f9664b853b1f49a9561b1, type: 3}
+      propertyPath: m_LocalPosition.y
+      value: 3
+      objectReference: {fileID: 0}
     - target: {fileID: 2148354796651825713, guid: 44b7db608f4f9664b853b1f49a9561b1, type: 3}
       propertyPath: SortKey
       value: 3036661747
+      objectReference: {fileID: 0}
+    - target: {fileID: 2336088068049406697, guid: 44b7db608f4f9664b853b1f49a9561b1, type: 3}
+      propertyPath: structuresList.Array.size
+      value: 4
+      objectReference: {fileID: 0}
+    - target: {fileID: 2336088068049406697, guid: 44b7db608f4f9664b853b1f49a9561b1, type: 3}
+      propertyPath: 'structuresList.Array.data[4]'
+      value: 
+      objectReference: {fileID: 0}
+    - target: {fileID: 2336088068049406697, guid: 44b7db608f4f9664b853b1f49a9561b1, type: 3}
+      propertyPath: 'structuresList.Array.data[5]'
+      value: 
+      objectReference: {fileID: 0}
+    - target: {fileID: 2387153709435432703, guid: 44b7db608f4f9664b853b1f49a9561b1, type: 3}
+      propertyPath: m_LocalScale.x
+      value: 6.5
       objectReference: {fileID: 0}
     - target: {fileID: 2475273220167301826, guid: 44b7db608f4f9664b853b1f49a9561b1, type: 3}
       propertyPath: SortKey
@@ -446,6 +474,10 @@ PrefabInstance:
     - target: {fileID: 2653623760885837086, guid: 44b7db608f4f9664b853b1f49a9561b1, type: 3}
       propertyPath: SortKey
       value: 4088926214
+      objectReference: {fileID: 0}
+    - target: {fileID: 2653623760885837086, guid: 44b7db608f4f9664b853b1f49a9561b1, type: 3}
+      propertyPath: NestedObjects.Array.size
+      value: 4
       objectReference: {fileID: 0}
     - target: {fileID: 2904380115295439942, guid: 44b7db608f4f9664b853b1f49a9561b1, type: 3}
       propertyPath: SortKey
@@ -475,6 +507,18 @@ PrefabInstance:
       propertyPath: SortKey
       value: 124071335
       objectReference: {fileID: 0}
+    - target: {fileID: 3970438380355295403, guid: 44b7db608f4f9664b853b1f49a9561b1, type: 3}
+      propertyPath: m_LocalPosition.x
+      value: 3
+      objectReference: {fileID: 0}
+    - target: {fileID: 3970438380355295403, guid: 44b7db608f4f9664b853b1f49a9561b1, type: 3}
+      propertyPath: m_LocalPosition.y
+      value: 0.5
+      objectReference: {fileID: 0}
+    - target: {fileID: 3970438380355295403, guid: 44b7db608f4f9664b853b1f49a9561b1, type: 3}
+      propertyPath: m_LocalPosition.z
+      value: 67
+      objectReference: {fileID: 0}
     - target: {fileID: 3992427056461820283, guid: 44b7db608f4f9664b853b1f49a9561b1, type: 3}
       propertyPath: SortKey
       value: 213150377
@@ -490,6 +534,10 @@ PrefabInstance:
     - target: {fileID: 4164770877558217933, guid: 44b7db608f4f9664b853b1f49a9561b1, type: 3}
       propertyPath: SortKey
       value: 2179530074
+      objectReference: {fileID: 0}
+    - target: {fileID: 4278119810207837409, guid: 44b7db608f4f9664b853b1f49a9561b1, type: 3}
+      propertyPath: m_LocalScale.x
+      value: 6.5
       objectReference: {fileID: 0}
     - target: {fileID: 4412131605042203536, guid: 44b7db608f4f9664b853b1f49a9561b1, type: 3}
       propertyPath: m_LocalPosition.x
@@ -539,9 +587,101 @@ PrefabInstance:
       propertyPath: SortKey
       value: 35474723
       objectReference: {fileID: 0}
+    - target: {fileID: 4595962897510796178, guid: 44b7db608f4f9664b853b1f49a9561b1, type: 3}
+      propertyPath: NestedObjects.Array.size
+      value: 30
+      objectReference: {fileID: 0}
+    - target: {fileID: 4595962897510796178, guid: 44b7db608f4f9664b853b1f49a9561b1, type: 3}
+      propertyPath: 'NestedObjects.Array.data[9]'
+      value: 
+      objectReference: {fileID: 913596605}
+    - target: {fileID: 4595962897510796178, guid: 44b7db608f4f9664b853b1f49a9561b1, type: 3}
+      propertyPath: 'NestedObjects.Array.data[10]'
+      value: 
+      objectReference: {fileID: 913596604}
+    - target: {fileID: 4595962897510796178, guid: 44b7db608f4f9664b853b1f49a9561b1, type: 3}
+      propertyPath: 'NestedObjects.Array.data[11]'
+      value: 
+      objectReference: {fileID: 913596603}
+    - target: {fileID: 4595962897510796178, guid: 44b7db608f4f9664b853b1f49a9561b1, type: 3}
+      propertyPath: 'NestedObjects.Array.data[12]'
+      value: 
+      objectReference: {fileID: 913596602}
+    - target: {fileID: 4595962897510796178, guid: 44b7db608f4f9664b853b1f49a9561b1, type: 3}
+      propertyPath: 'NestedObjects.Array.data[13]'
+      value: 
+      objectReference: {fileID: 913596601}
+    - target: {fileID: 4595962897510796178, guid: 44b7db608f4f9664b853b1f49a9561b1, type: 3}
+      propertyPath: 'NestedObjects.Array.data[14]'
+      value: 
+      objectReference: {fileID: 913596600}
+    - target: {fileID: 4595962897510796178, guid: 44b7db608f4f9664b853b1f49a9561b1, type: 3}
+      propertyPath: 'NestedObjects.Array.data[15]'
+      value: 
+      objectReference: {fileID: 913596599}
+    - target: {fileID: 4595962897510796178, guid: 44b7db608f4f9664b853b1f49a9561b1, type: 3}
+      propertyPath: 'NestedObjects.Array.data[16]'
+      value: 
+      objectReference: {fileID: 913596598}
+    - target: {fileID: 4595962897510796178, guid: 44b7db608f4f9664b853b1f49a9561b1, type: 3}
+      propertyPath: 'NestedObjects.Array.data[17]'
+      value: 
+      objectReference: {fileID: 913596597}
+    - target: {fileID: 4595962897510796178, guid: 44b7db608f4f9664b853b1f49a9561b1, type: 3}
+      propertyPath: 'NestedObjects.Array.data[18]'
+      value: 
+      objectReference: {fileID: 913596596}
+    - target: {fileID: 4595962897510796178, guid: 44b7db608f4f9664b853b1f49a9561b1, type: 3}
+      propertyPath: 'NestedObjects.Array.data[19]'
+      value: 
+      objectReference: {fileID: 913596595}
+    - target: {fileID: 4595962897510796178, guid: 44b7db608f4f9664b853b1f49a9561b1, type: 3}
+      propertyPath: 'NestedObjects.Array.data[20]'
+      value: 
+      objectReference: {fileID: 913596594}
+    - target: {fileID: 4595962897510796178, guid: 44b7db608f4f9664b853b1f49a9561b1, type: 3}
+      propertyPath: 'NestedObjects.Array.data[21]'
+      value: 
+      objectReference: {fileID: 913596593}
+    - target: {fileID: 4595962897510796178, guid: 44b7db608f4f9664b853b1f49a9561b1, type: 3}
+      propertyPath: 'NestedObjects.Array.data[22]'
+      value: 
+      objectReference: {fileID: 913596592}
+    - target: {fileID: 4595962897510796178, guid: 44b7db608f4f9664b853b1f49a9561b1, type: 3}
+      propertyPath: 'NestedObjects.Array.data[23]'
+      value: 
+      objectReference: {fileID: 913596591}
+    - target: {fileID: 4595962897510796178, guid: 44b7db608f4f9664b853b1f49a9561b1, type: 3}
+      propertyPath: 'NestedObjects.Array.data[24]'
+      value: 
+      objectReference: {fileID: 913596590}
+    - target: {fileID: 4595962897510796178, guid: 44b7db608f4f9664b853b1f49a9561b1, type: 3}
+      propertyPath: 'NestedObjects.Array.data[25]'
+      value: 
+      objectReference: {fileID: 913596589}
+    - target: {fileID: 4595962897510796178, guid: 44b7db608f4f9664b853b1f49a9561b1, type: 3}
+      propertyPath: 'NestedObjects.Array.data[26]'
+      value: 
+      objectReference: {fileID: 913596588}
+    - target: {fileID: 4595962897510796178, guid: 44b7db608f4f9664b853b1f49a9561b1, type: 3}
+      propertyPath: 'NestedObjects.Array.data[27]'
+      value: 
+      objectReference: {fileID: 913596587}
+    - target: {fileID: 4595962897510796178, guid: 44b7db608f4f9664b853b1f49a9561b1, type: 3}
+      propertyPath: 'NestedObjects.Array.data[28]'
+      value: 
+      objectReference: {fileID: 913596586}
+    - target: {fileID: 4595962897510796178, guid: 44b7db608f4f9664b853b1f49a9561b1, type: 3}
+      propertyPath: 'NestedObjects.Array.data[29]'
+      value: 
+      objectReference: {fileID: 913596585}
     - target: {fileID: 4619886393589224030, guid: 44b7db608f4f9664b853b1f49a9561b1, type: 3}
       propertyPath: SortKey
       value: 1947439217
+      objectReference: {fileID: 0}
+    - target: {fileID: 4619886393589224030, guid: 44b7db608f4f9664b853b1f49a9561b1, type: 3}
+      propertyPath: NestedObjects.Array.size
+      value: 2
       objectReference: {fileID: 0}
     - target: {fileID: 4716946903061375723, guid: 44b7db608f4f9664b853b1f49a9561b1, type: 3}
       propertyPath: SortKey
@@ -550,6 +690,14 @@ PrefabInstance:
     - target: {fileID: 4941679000938663444, guid: 44b7db608f4f9664b853b1f49a9561b1, type: 3}
       propertyPath: SortKey
       value: 1447629711
+      objectReference: {fileID: 0}
+    - target: {fileID: 4979035669988509054, guid: 44b7db608f4f9664b853b1f49a9561b1, type: 3}
+      propertyPath: m_LocalPosition.x
+      value: -3
+      objectReference: {fileID: 0}
+    - target: {fileID: 4979035669988509054, guid: 44b7db608f4f9664b853b1f49a9561b1, type: 3}
+      propertyPath: m_LocalPosition.z
+      value: 67
       objectReference: {fileID: 0}
     - target: {fileID: 5206039965495916583, guid: 44b7db608f4f9664b853b1f49a9561b1, type: 3}
       propertyPath: SortKey
@@ -566,6 +714,10 @@ PrefabInstance:
     - target: {fileID: 5897476766790175162, guid: 44b7db608f4f9664b853b1f49a9561b1, type: 3}
       propertyPath: SortKey
       value: 3628151919
+      objectReference: {fileID: 0}
+    - target: {fileID: 6056863087239444380, guid: 44b7db608f4f9664b853b1f49a9561b1, type: 3}
+      propertyPath: m_LocalPosition.x
+      value: -3
       objectReference: {fileID: 0}
     - target: {fileID: 6660211569571233186, guid: 44b7db608f4f9664b853b1f49a9561b1, type: 3}
       propertyPath: SortKey
@@ -603,6 +755,26 @@ PrefabInstance:
       propertyPath: SortKey
       value: 1152345766
       objectReference: {fileID: 0}
+    - target: {fileID: 8628334821579418666, guid: 44b7db608f4f9664b853b1f49a9561b1, type: 3}
+      propertyPath: m_LocalPosition.x
+      value: -11.75
+      objectReference: {fileID: 0}
+    - target: {fileID: 8628334821579418666, guid: 44b7db608f4f9664b853b1f49a9561b1, type: 3}
+      propertyPath: m_LocalPosition.y
+      value: 11
+      objectReference: {fileID: 0}
+    - target: {fileID: 8628334821579418666, guid: 44b7db608f4f9664b853b1f49a9561b1, type: 3}
+      propertyPath: m_LocalPosition.z
+      value: 24.26
+      objectReference: {fileID: 0}
+    - target: {fileID: 8829427213637613726, guid: 44b7db608f4f9664b853b1f49a9561b1, type: 3}
+      propertyPath: structuresList.Array.size
+      value: 2
+      objectReference: {fileID: 0}
+    - target: {fileID: 8916999493561406629, guid: 44b7db608f4f9664b853b1f49a9561b1, type: 3}
+      propertyPath: m_LocalPosition.y
+      value: 3
+      objectReference: {fileID: 0}
     - target: {fileID: 8922095110572351580, guid: 44b7db608f4f9664b853b1f49a9561b1, type: 3}
       propertyPath: SortKey
       value: 568260761
@@ -612,7 +784,16 @@ PrefabInstance:
       value: 2308715842
       objectReference: {fileID: 0}
     m_RemovedComponents: []
-    m_RemovedGameObjects: []
+    m_RemovedGameObjects:
+    - {fileID: 1523318642180548904, guid: 44b7db608f4f9664b853b1f49a9561b1, type: 3}
+    - {fileID: 9201246658152146131, guid: 44b7db608f4f9664b853b1f49a9561b1, type: 3}
+    - {fileID: 2941882969119923792, guid: 44b7db608f4f9664b853b1f49a9561b1, type: 3}
+    - {fileID: 5951344794254676045, guid: 44b7db608f4f9664b853b1f49a9561b1, type: 3}
+    - {fileID: 3978510951109964066, guid: 44b7db608f4f9664b853b1f49a9561b1, type: 3}
+    - {fileID: 5363472090628498427, guid: 44b7db608f4f9664b853b1f49a9561b1, type: 3}
+    - {fileID: 4727985122507288009, guid: 44b7db608f4f9664b853b1f49a9561b1, type: 3}
+    - {fileID: 7056948811748258921, guid: 44b7db608f4f9664b853b1f49a9561b1, type: 3}
+    - {fileID: 1634547502903513560, guid: 44b7db608f4f9664b853b1f49a9561b1, type: 3}
     m_AddedGameObjects: []
     m_AddedComponents:
     - targetCorrespondingSourceObject: {fileID: 8476948238278646926, guid: 44b7db608f4f9664b853b1f49a9561b1, type: 3}
@@ -633,6 +814,237 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 36464b9edaa31d04a8ffd167a44bbf65, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Stage
+--- !u!114 &913596585 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 9142389947759590306, guid: 44b7db608f4f9664b853b1f49a9561b1, type: 3}
+  m_PrefabInstance: {fileID: 913596583}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: -1552182283, guid: e725a070cec140c4caffb81624c8c787, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Fusion.Runtime.dll::Fusion.NetworkObject
+--- !u!114 &913596586 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 8368901401535562248, guid: 44b7db608f4f9664b853b1f49a9561b1, type: 3}
+  m_PrefabInstance: {fileID: 913596583}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: -1552182283, guid: e725a070cec140c4caffb81624c8c787, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Fusion.Runtime.dll::Fusion.NetworkObject
+--- !u!114 &913596587 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 8110231740116270551, guid: 44b7db608f4f9664b853b1f49a9561b1, type: 3}
+  m_PrefabInstance: {fileID: 913596583}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: -1552182283, guid: e725a070cec140c4caffb81624c8c787, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Fusion.Runtime.dll::Fusion.NetworkObject
+--- !u!114 &913596588 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 5429641422256350065, guid: 44b7db608f4f9664b853b1f49a9561b1, type: 3}
+  m_PrefabInstance: {fileID: 913596583}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: -1552182283, guid: e725a070cec140c4caffb81624c8c787, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Fusion.Runtime.dll::Fusion.NetworkObject
+--- !u!114 &913596589 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 4132391579775909540, guid: 44b7db608f4f9664b853b1f49a9561b1, type: 3}
+  m_PrefabInstance: {fileID: 913596583}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: -1552182283, guid: e725a070cec140c4caffb81624c8c787, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Fusion.Runtime.dll::Fusion.NetworkObject
+--- !u!114 &913596590 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 2904380115295439942, guid: 44b7db608f4f9664b853b1f49a9561b1, type: 3}
+  m_PrefabInstance: {fileID: 913596583}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: -1552182283, guid: e725a070cec140c4caffb81624c8c787, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Fusion.Runtime.dll::Fusion.NetworkObject
+--- !u!114 &913596591 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 7876607667879582237, guid: 44b7db608f4f9664b853b1f49a9561b1, type: 3}
+  m_PrefabInstance: {fileID: 913596583}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: -1552182283, guid: e725a070cec140c4caffb81624c8c787, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Fusion.Runtime.dll::Fusion.NetworkObject
+--- !u!114 &913596592 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 7706613508600905673, guid: 44b7db608f4f9664b853b1f49a9561b1, type: 3}
+  m_PrefabInstance: {fileID: 913596583}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: -1552182283, guid: e725a070cec140c4caffb81624c8c787, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Fusion.Runtime.dll::Fusion.NetworkObject
+--- !u!114 &913596593 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 5897476766790175162, guid: 44b7db608f4f9664b853b1f49a9561b1, type: 3}
+  m_PrefabInstance: {fileID: 913596583}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: -1552182283, guid: e725a070cec140c4caffb81624c8c787, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Fusion.Runtime.dll::Fusion.NetworkObject
+--- !u!114 &913596594 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 5206039965495916583, guid: 44b7db608f4f9664b853b1f49a9561b1, type: 3}
+  m_PrefabInstance: {fileID: 913596583}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: -1552182283, guid: e725a070cec140c4caffb81624c8c787, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Fusion.Runtime.dll::Fusion.NetworkObject
+--- !u!114 &913596595 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 1004132172994944760, guid: 44b7db608f4f9664b853b1f49a9561b1, type: 3}
+  m_PrefabInstance: {fileID: 913596583}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: -1552182283, guid: e725a070cec140c4caffb81624c8c787, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Fusion.Runtime.dll::Fusion.NetworkObject
+--- !u!114 &913596596 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 3158833670757938981, guid: 44b7db608f4f9664b853b1f49a9561b1, type: 3}
+  m_PrefabInstance: {fileID: 913596583}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: -1552182283, guid: e725a070cec140c4caffb81624c8c787, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Fusion.Runtime.dll::Fusion.NetworkObject
+--- !u!114 &913596597 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 1088332978446948631, guid: 44b7db608f4f9664b853b1f49a9561b1, type: 3}
+  m_PrefabInstance: {fileID: 913596583}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: -1552182283, guid: e725a070cec140c4caffb81624c8c787, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Fusion.Runtime.dll::Fusion.NetworkObject
+--- !u!114 &913596598 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 4019273708325473293, guid: 44b7db608f4f9664b853b1f49a9561b1, type: 3}
+  m_PrefabInstance: {fileID: 913596583}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: -1552182283, guid: e725a070cec140c4caffb81624c8c787, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Fusion.Runtime.dll::Fusion.NetworkObject
+--- !u!114 &913596599 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 8922095110572351580, guid: 44b7db608f4f9664b853b1f49a9561b1, type: 3}
+  m_PrefabInstance: {fileID: 913596583}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: -1552182283, guid: e725a070cec140c4caffb81624c8c787, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Fusion.Runtime.dll::Fusion.NetworkObject
+--- !u!114 &913596600 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 2972283941836756299, guid: 44b7db608f4f9664b853b1f49a9561b1, type: 3}
+  m_PrefabInstance: {fileID: 913596583}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: -1552182283, guid: e725a070cec140c4caffb81624c8c787, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Fusion.Runtime.dll::Fusion.NetworkObject
+--- !u!114 &913596601 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 3121872958326670198, guid: 44b7db608f4f9664b853b1f49a9561b1, type: 3}
+  m_PrefabInstance: {fileID: 913596583}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: -1552182283, guid: e725a070cec140c4caffb81624c8c787, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Fusion.Runtime.dll::Fusion.NetworkObject
+--- !u!114 &913596602 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 2148354796651825713, guid: 44b7db608f4f9664b853b1f49a9561b1, type: 3}
+  m_PrefabInstance: {fileID: 913596583}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: -1552182283, guid: e725a070cec140c4caffb81624c8c787, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Fusion.Runtime.dll::Fusion.NetworkObject
+--- !u!114 &913596603 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 3426205234695466946, guid: 44b7db608f4f9664b853b1f49a9561b1, type: 3}
+  m_PrefabInstance: {fileID: 913596583}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: -1552182283, guid: e725a070cec140c4caffb81624c8c787, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Fusion.Runtime.dll::Fusion.NetworkObject
+--- !u!114 &913596604 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 2653623760885837086, guid: 44b7db608f4f9664b853b1f49a9561b1, type: 3}
+  m_PrefabInstance: {fileID: 913596583}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: -1552182283, guid: e725a070cec140c4caffb81624c8c787, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Fusion.Runtime.dll::Fusion.NetworkObject
+--- !u!114 &913596605 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 2475273220167301826, guid: 44b7db608f4f9664b853b1f49a9561b1, type: 3}
+  m_PrefabInstance: {fileID: 913596583}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: -1552182283, guid: e725a070cec140c4caffb81624c8c787, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Fusion.Runtime.dll::Fusion.NetworkObject
 --- !u!1 &1671219419
 GameObject:
   m_ObjectHideFlags: 0

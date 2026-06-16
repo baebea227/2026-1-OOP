@@ -15,7 +15,7 @@ EditorBuildSettings:
     path: Assets/Scenes/WaitingRoomScene.unity
     guid: 40cd3cc9ebc82be46926031a7bd6eaf4
   - enabled: 0
-    path: Assets/Scenes/MainStageScene.unity
+    path: Assets/Objects/5. TestScenes/MainStageScene.unity
     guid: c097bc0a8c74035489f29ea44d0c610b
   - enabled: 1
     path: Assets/Scenes/StageA.unity
