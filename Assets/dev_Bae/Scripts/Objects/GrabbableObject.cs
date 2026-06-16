@@ -5,6 +5,7 @@ public class GrabbableObject : InteractableObject, IPickupable, IPushable
 {
     [Header("Grab Settings")]
     public float throwSpeed = 10f;
+    [SerializeField] private Transform visualRoot;
 
     [Header("Release Safety")]
     [SerializeField] private LayerMask releaseBlockMask = CollisionPolicyBootstrap.PlayerBodyMask;
@@ -26,6 +27,7 @@ public class GrabbableObject : InteractableObject, IPickupable, IPushable
     private bool defaultUseGravity;
     private bool defaultDetectCollisions;
     private bool physicsDisabledForHold;
+    private bool heldVisualCorrectionApplied;
     private readonly Collider[] releaseOverlapResults = new Collider[16];
     private readonly Collider[] playerOverlapResults = new Collider[16];
 
@@ -33,6 +35,7 @@ public class GrabbableObject : InteractableObject, IPickupable, IPushable
     {
         base.Awake();
         ApplyCollisionLayer(isHeld: false);
+        CacheVisualRoot();
 
         if (releaseBlockMask.value == 0)
             releaseBlockMask = CollisionPolicyBootstrap.PlayerBodyMask;
@@ -138,6 +141,7 @@ public class GrabbableObject : InteractableObject, IPickupable, IPushable
             return;
 
         ClearHolderReference(thrower);
+        ResetHeldVisualCorrection();
         SetReleasePosition(releasePosition);
         SetHeldPhysicsDisabled(false);
         rb.WakeUp();
@@ -155,6 +159,7 @@ public class GrabbableObject : InteractableObject, IPickupable, IPushable
             return;
 
         ClearHolderReference(dropper);
+        ResetHeldVisualCorrection();
         SetReleasePosition(releasePosition);
         SetHeldPhysicsDisabled(false);
         rb.WakeUp();
@@ -565,6 +570,14 @@ public class GrabbableObject : InteractableObject, IPickupable, IPushable
         ApplyHeldVisualCorrection();
     }
 
+    private void LateUpdate()
+    {
+        if (Object == null || Runner == null)
+            return;
+
+        ApplyHeldVisualCorrection();
+    }
+
     public override void FixedUpdateNetwork()
     {
         bool isHeld = HolderObject != null;
@@ -583,6 +596,7 @@ public class GrabbableObject : InteractableObject, IPickupable, IPushable
         if (holder == null || holder.HoldPoint == null)
         {
             HolderObject = null;
+            ResetHeldVisualCorrection();
             SetHeldPhysicsDisabled(false);
             return;
         }
@@ -592,13 +606,46 @@ public class GrabbableObject : InteractableObject, IPickupable, IPushable
 
     private void ApplyHeldVisualCorrection()
     {
-        if (Object.HasStateAuthority || HolderObject == null)
+        if (HolderObject == null)
+        {
+            ResetHeldVisualCorrection();
+            return;
+        }
+
+        if (visualRoot == null)
             return;
 
         var holder = HolderObject.GetComponent<PlayerGrabHandler>();
         if (holder == null || holder.HoldPoint == null)
             return;
 
-        transform.position = holder.HoldPoint.position;
+        visualRoot.position = holder.HoldPoint.position;
+        heldVisualCorrectionApplied = true;
+    }
+
+    private void CacheVisualRoot()
+    {
+        if (visualRoot != null)
+            return;
+
+        Renderer[] renderers = GetComponentsInChildren<Renderer>(true);
+        foreach (Renderer candidate in renderers)
+        {
+            if (candidate == null || candidate.transform == transform)
+                continue;
+
+            visualRoot = candidate.transform;
+            return;
+        }
+    }
+
+    private void ResetHeldVisualCorrection()
+    {
+        if (!heldVisualCorrectionApplied || visualRoot == null)
+            return;
+
+        visualRoot.localPosition = Vector3.zero;
+        visualRoot.localRotation = Quaternion.identity;
+        heldVisualCorrectionApplied = false;
     }
 }
