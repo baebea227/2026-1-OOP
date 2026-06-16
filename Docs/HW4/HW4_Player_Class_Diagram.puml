@@ -1,0 +1,186 @@
+@startuml
+title HW4 Player Class Diagram - Design Pattern Applied
+
+skinparam classAttributeIconSize 0
+
+class Player <<Entity>> {
+  GRASP: High Cohesion
+  --
+  - inputAuthority
+  - playerObject
+  --
+  + move()
+  + jump()
+  + grab()
+  + throwObject()
+}
+
+class PlayerInputHandler <<Adapter>> {
+  GRASP: Controller, Low Coupling
+  Design Pattern: Adapter
+  --
+  - moveAction
+  - lookAction
+  - sprintAction
+  - jumpAction
+  - grabAction
+  - throwAction
+  - localYaw
+  - localPitch
+  --
+  + Render()
+  + OnInput()
+  - ClearBufferedButtonInputs()
+}
+
+class PlayerNetworkInput <<Value Object>> {
+  GRASP: Information Expert
+  --
+  + moveInput
+  + yaw
+  + pitch
+  + isSprinting
+  + isJumping
+  + isGrab
+  + isInteract
+  + isThrow
+}
+
+class PlayerMovement <<Context>> {
+  GRASP: Controller, Information Expert, High Cohesion
+  Design Pattern: Strategy
+  --
+  - walkSpeed
+  - runSpeed
+  - sprintSpeed
+  - jumpHeight
+  - pushForce
+  - pushInteractionStrategies
+  + MoveInput
+  + IsSprinting
+  + IsJumping
+  + IsFalling
+  + CameraYaw
+  + CameraPitch
+  --
+  + FixedUpdateNetwork()
+  + ApplyHeavyObjectCarry()
+  - ResolvePushProbe()
+  - EnsurePushInteractionStrategies()
+  - TryFindPushable()
+  - TryFindHeavyObject()
+  - RemoveBlockedPushComponent()
+}
+
+interface IPushInteractionStrategy <<Strategy>> {
+  Design Pattern: Strategy
+  --
+  + TryResolve()
+}
+
+class HeavyPushInteractionStrategy <<Concrete Strategy>> {
+  GRASP: Polymorphism, High Cohesion
+  Design Pattern: Strategy
+  --
+  + TryResolve()
+}
+
+class LightPushInteractionStrategy <<Concrete Strategy>> {
+  GRASP: Polymorphism, High Cohesion
+  Design Pattern: Strategy
+  --
+  + TryResolve()
+}
+
+class PlayerGrabHandler <<Facade>> {
+  GRASP: Controller, Low Coupling
+  Design Pattern: Facade
+  --
+  - grabRange
+  - throwSpeed
+  - holdPoint
+  - cameraTransform
+  + HeldGrabbable
+  --
+  + FixedUpdateNetwork()
+  - FindGrabCandidate()
+  - RequestToggleGrab()
+  - RequestThrow()
+  - TryInteract()
+}
+
+interface IPushable <<Interface>> {
+  GRASP: Polymorphism
+  --
+  + OnPush()
+}
+
+class GrabbableObject <<Entity>> {
+  GRASP: Information Expert, High Cohesion
+  --
+  - HolderObject
+  - releaseBlockMask
+  - playerBlockMask
+  - physicsDisabledForHold
+  --
+  + TryPickup()
+  + TryDrop()
+  + TryThrow()
+  + OnPush()
+  - ApplyPickup()
+  - ApplyDrop()
+  - ApplyThrow()
+}
+
+class HeavyObject <<Entity>> {
+  GRASP: Information Expert, High Cohesion
+  --
+  - requiredPushers
+  - scriptedMoveSpeed
+  - pushSamples
+  - activeDirection
+  - activeMoveUntil
+  --
+  + TryResolvePushIntent()
+  + SubmitPushIntent()
+  + FixedUpdateNetwork()
+  - TryRecordPush()
+  - TryGetCooperativePush()
+  - ApplyScriptedMove()
+}
+
+class PlayerAnimatorController <<Controller>> {
+  GRASP: Controller, Low Coupling
+  --
+  - animator
+  - movement
+  - prevIsJumping
+  - prevIsFalling
+  --
+  + Render()
+}
+
+Player "1" *-- "1" PlayerInputHandler
+Player "1" *-- "1" PlayerMovement
+Player "1" *-- "1" PlayerGrabHandler
+Player "1" *-- "1" PlayerAnimatorController
+
+PlayerInputHandler ..> PlayerNetworkInput : adapts input actions
+PlayerMovement ..> PlayerNetworkInput
+PlayerGrabHandler ..> PlayerNetworkInput
+
+PlayerMovement "1" o-- "2" IPushInteractionStrategy
+IPushInteractionStrategy <|.. HeavyPushInteractionStrategy
+IPushInteractionStrategy <|.. LightPushInteractionStrategy
+HeavyPushInteractionStrategy ..> HeavyObject
+LightPushInteractionStrategy ..> IPushable
+
+PlayerGrabHandler "1" --> "0..1" GrabbableObject
+GrabbableObject ..|> IPushable
+
+PlayerMovement "1..2" --> "0..1" HeavyObject
+HeavyObject "1" --> "0..2" PlayerMovement : carries pushers
+
+PlayerAnimatorController ..> PlayerMovement
+
+@enduml

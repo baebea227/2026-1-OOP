@@ -31,6 +31,7 @@ public class PlayerMovement : NetworkBehaviour
 
     private NetworkCharacterController cc;
     private CharacterController characterController;
+    private IPushInteractionStrategy[] pushInteractionStrategies;
     private readonly RaycastHit[] pushProbeHits = new RaycastHit[8];
     private readonly RaycastHit[] groundProbeHits = new RaycastHit[4];
 
@@ -50,6 +51,11 @@ public class PlayerMovement : NetworkBehaviour
     {
         cc = GetComponent<NetworkCharacterController>();
         characterController = GetComponent<CharacterController>();
+        pushInteractionStrategies = new IPushInteractionStrategy[]
+        {
+            new HeavyPushInteractionStrategy(),
+            new LightPushInteractionStrategy()
+        };
         CollisionPolicyBootstrap.ApplyLayerToColliderOwners(gameObject, CollisionPolicyBootstrap.PlayerBodyLayer);
 
         int lightPushableMask = CollisionPolicyBootstrap.PushableMask & ~(1 << CollisionPolicyBootstrap.HeavyPuzzleLayer);
@@ -210,42 +216,32 @@ public class PlayerMovement : NetworkBehaviour
         if (moveDir.sqrMagnitude <= 0.0001f)
             return moveDir;
 
-        if (TryFindHeavyObject(moveDir, out RaycastHit heavyHit, out HeavyObject heavyObject))
+        EnsurePushInteractionStrategies();
+        foreach (IPushInteractionStrategy strategy in pushInteractionStrategies)
         {
-            bool hasPushIntent = heavyObject.TryResolvePushIntent(
-                transform.position,
-                moveDir,
-                out int directionIndex,
-                out Vector3 blockNormal);
+            if (!strategy.TryResolve(this, moveDir, out PushResolution resolution))
+                continue;
 
-            isPushingHeavyObject = hasPushIntent;
-
-            if (hasPushIntent && HasInputAuthority)
-                heavyObject.SubmitPushIntent(directionIndex, Object.InputAuthority);
-
-            if (blockNormal.sqrMagnitude <= 0.0001f)
-                blockNormal = heavyHit.normal;
-
-            Vector3 blockedMoveDir = RemoveBlockedPushComponent(
-                moveDir,
-                blockNormal,
-                out isBlockingHeavyPush,
-                out heavyBlockNormal);
-
-            if (isBlockingHeavyPush)
-                resolvedMoveSpeedScale = GetResolvedMoveSpeedScale(moveDir, blockedMoveDir);
-
-            return blockedMoveDir;
-        }
-
-        if (TryFindPushable(moveDir, out _, out IPushable pushable) && HasInputAuthority)
-        {
-            Vector3 force = moveDir.normalized * pushForce;
-            force.y = 0f;
-            pushable.OnPush(force, Object.InputAuthority);
+            isBlockingHeavyPush = resolution.IsBlockingHeavyPush;
+            heavyBlockNormal = resolution.HeavyBlockNormal;
+            resolvedMoveSpeedScale = resolution.ResolvedMoveSpeedScale;
+            isPushingHeavyObject = resolution.IsPushingHeavyObject;
+            return resolution.ResolvedMoveDirection;
         }
 
         return moveDir;
+    }
+
+    private void EnsurePushInteractionStrategies()
+    {
+        if (pushInteractionStrategies != null && pushInteractionStrategies.Length > 0)
+            return;
+
+        pushInteractionStrategies = new IPushInteractionStrategy[]
+        {
+            new HeavyPushInteractionStrategy(),
+            new LightPushInteractionStrategy()
+        };
     }
 
     private float GetResolvedMoveSpeedScale(Vector3 originalMoveDir, Vector3 resolvedMoveDir)
@@ -342,6 +338,98 @@ public class PlayerMovement : NetworkBehaviour
         }
 
         return nearestPushable != null;
+    }
+
+    private readonly struct PushResolution
+    {
+        public PushResolution(
+            Vector3 resolvedMoveDirection,
+            bool isBlockingHeavyPush,
+            Vector3 heavyBlockNormal,
+            float resolvedMoveSpeedScale,
+            bool isPushingHeavyObject)
+        {
+            ResolvedMoveDirection = resolvedMoveDirection;
+            IsBlockingHeavyPush = isBlockingHeavyPush;
+            HeavyBlockNormal = heavyBlockNormal;
+            ResolvedMoveSpeedScale = resolvedMoveSpeedScale;
+            IsPushingHeavyObject = isPushingHeavyObject;
+        }
+
+        public Vector3 ResolvedMoveDirection { get; }
+        public bool IsBlockingHeavyPush { get; }
+        public Vector3 HeavyBlockNormal { get; }
+        public float ResolvedMoveSpeedScale { get; }
+        public bool IsPushingHeavyObject { get; }
+
+        public static PushResolution PassThrough(Vector3 moveDir)
+        {
+            return new PushResolution(moveDir, false, Vector3.zero, 1f, false);
+        }
+    }
+
+    private interface IPushInteractionStrategy
+    {
+        bool TryResolve(PlayerMovement movement, Vector3 moveDir, out PushResolution resolution);
+    }
+
+    private sealed class HeavyPushInteractionStrategy : IPushInteractionStrategy
+    {
+        public bool TryResolve(PlayerMovement movement, Vector3 moveDir, out PushResolution resolution)
+        {
+            resolution = default;
+            if (!movement.TryFindHeavyObject(moveDir, out RaycastHit heavyHit, out HeavyObject heavyObject))
+                return false;
+
+            bool hasPushIntent = heavyObject.TryResolvePushIntent(
+                movement.transform.position,
+                moveDir,
+                out int directionIndex,
+                out Vector3 blockNormal);
+
+            if (hasPushIntent && movement.HasInputAuthority)
+                heavyObject.SubmitPushIntent(directionIndex, movement.Object.InputAuthority);
+
+            if (blockNormal.sqrMagnitude <= 0.0001f)
+                blockNormal = heavyHit.normal;
+
+            Vector3 blockedMoveDir = movement.RemoveBlockedPushComponent(
+                moveDir,
+                blockNormal,
+                out bool isBlockingHeavyPush,
+                out Vector3 heavyBlockNormal);
+
+            float resolvedMoveSpeedScale = isBlockingHeavyPush
+                ? movement.GetResolvedMoveSpeedScale(moveDir, blockedMoveDir)
+                : 1f;
+
+            resolution = new PushResolution(
+                blockedMoveDir,
+                isBlockingHeavyPush,
+                heavyBlockNormal,
+                resolvedMoveSpeedScale,
+                hasPushIntent);
+            return true;
+        }
+    }
+
+    private sealed class LightPushInteractionStrategy : IPushInteractionStrategy
+    {
+        public bool TryResolve(PlayerMovement movement, Vector3 moveDir, out PushResolution resolution)
+        {
+            resolution = PushResolution.PassThrough(moveDir);
+            if (!movement.TryFindPushable(moveDir, out _, out IPushable pushable))
+                return false;
+
+            if (movement.HasInputAuthority)
+            {
+                Vector3 force = moveDir.normalized * movement.pushForce;
+                force.y = 0f;
+                pushable.OnPush(force, movement.Object.InputAuthority);
+            }
+
+            return true;
+        }
     }
 
     private Vector3 GetPushProbeOrigin()
