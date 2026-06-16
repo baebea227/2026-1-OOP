@@ -56,7 +56,7 @@ public class PressurePlate : OperatableObject
     void TriggerCheck()
     {
         int res = 0;
-        var triggered = Physics.OverlapBox(transform.position, new Vector3(0.8f, 0.7f, 0.8f), Quaternion.identity);
+        var triggered = Physics.OverlapBox(transform.position, new Vector3(1.4f, 0.7f, 1.4f), Quaternion.identity);
         foreach(var entity in triggered)
         {
             if(entity.CompareTag("Player") || entity.name == "GrabbableCube" || entity.name == "HeavyCube")
@@ -83,6 +83,6 @@ public class PressurePlate : OperatableObject
     {  
         Gizmos.matrix = transform.localToWorldMatrix;  
         Gizmos.color = Color.yellow;  
-        Gizmos.DrawWireCube(Vector3.zero, new Vector3(0.8f, 1f, 0.8f));  
+        Gizmos.DrawWireCube(Vector3.zero, new Vector3(2.8f/3, 1f, 2.8f/3));  
     }
 }

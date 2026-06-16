@@ -31,7 +31,7 @@ public class HeavyObject : InteractableObject
         RigidbodyConstraints.FreezePositionY | RigidbodyConstraints.FreezeRotation;
 
     private readonly Dictionary<PlayerRef, PushSample> pushSamples = new();
-    private const float pushWindow = 0.15f;
+    private const float pushWindow = 0.25f;
     private Collider[] pushFaceColliders;
     private float activeMoveUntil = -1f;
     private int activeDirection = -1;

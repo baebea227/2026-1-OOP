@@ -9,6 +9,8 @@ using UnityEngine.UI;
 public class StageSettingsMenu : MonoBehaviour
 {
     private const string MainStageSceneName = "MainStageScene";
+    private const string StageASceneName = "StageA";
+    private const string StageBSceneName = "StageB";
     private const string LobbySceneName = "LobbyScene";
 
     private static bool sceneHookRegistered;
@@ -61,11 +63,10 @@ public class StageSettingsMenu : MonoBehaviour
 
     private static void CreateForScene(Scene scene)
     {
-        if (!scene.IsValid() || scene.name != MainStageSceneName)
+        if (!IsStageScene(scene))
             return;
 
-        StageSettingsMenu existing = FindAnyObjectByType<StageSettingsMenu>(FindObjectsInactive.Include);
-        if (existing != null)
+        if (FindMenuInScene(scene) != null)
             return;
 
         GameObject menuObject = new GameObject("StageSettingsMenu");
@@ -75,13 +76,38 @@ public class StageSettingsMenu : MonoBehaviour
 
     private void Awake()
     {
-        if (gameObject.scene.name != MainStageSceneName)
+        if (!IsStageScene(gameObject.scene))
         {
             Destroy(gameObject);
             return;
         }
 
         BuildUi();
+    }
+
+    private static bool IsStageScene(Scene scene)
+    {
+        if (!scene.IsValid())
+            return false;
+
+        return scene.name == MainStageSceneName ||
+            scene.name == StageASceneName ||
+            scene.name == StageBSceneName;
+    }
+
+    private static StageSettingsMenu FindMenuInScene(Scene scene)
+    {
+        StageSettingsMenu[] menus = FindObjectsByType<StageSettingsMenu>(
+            FindObjectsInactive.Include,
+            FindObjectsSortMode.None);
+
+        foreach (StageSettingsMenu menu in menus)
+        {
+            if (menu != null && menu.gameObject.scene == scene)
+                return menu;
+        }
+
+        return null;
     }
 
     private void Update()

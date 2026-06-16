@@ -12,22 +12,20 @@ public class MoveableStructure : NetworkBehaviour, IActivatable
 
     [SerializeField] float moveTime;
     float curMoveTime;
-    Transform startPos;
-    Transform endPos;
+    float currentT;
+    Vector3 startPos;
+    Vector3 endPos;
     [SerializeField] Transform posA;
     [SerializeField] Transform posB;
 
     Coroutine coroutine;
-    bool applyMove;
 
     void Awake()
     {
-        curMoveTime = 0;
-        applyMove = false;
-
         IsActive = firstState;
         curTriggerCnt = firstState ? triggerCnt : 0;
         transform.position = posA.position;
+        currentT = 0f;
     }
 
     public void OnActivate(int n)
@@ -72,62 +70,43 @@ public class MoveableStructure : NetworkBehaviour, IActivatable
     public void Activate()
     {
         IsActive = true;
-        startPos = transform;
-        endPos = posB;
-        // if(coroutine != null)
-        // {
-        //     StopCoroutine(coroutine);
-        // }
-        // coroutine = StartCoroutine(Move());
-        applyMove = true;
-        curMoveTime = 0;
+        startPos = transform.position;
+        endPos = posB.position;
+
+        if (coroutine != null) StopCoroutine(coroutine);
+        currentT = 0f;
+        coroutine = StartCoroutine(Move());
     }
 
     public void Deactivate()
     {
         IsActive = false;
-        startPos = transform;
-        endPos = posA;
-        // if(coroutine != null)
-        // {
-        //     StopCoroutine(coroutine);
-        // }
-        // coroutine = StartCoroutine(Move());
-        applyMove = true;
-        curMoveTime = 0;
-    }
+        startPos = transform.position;
+        endPos = posA.position;
 
-    void Update()
-    {
-        if (applyMove)
-        {
-            Move2();
-        }
+        if (coroutine != null) StopCoroutine(coroutine);
+        currentT = 0f;
+        coroutine = StartCoroutine(Move());
     }
 
     IEnumerator Move()
     {
-        curMoveTime = 0;
+        float remainingDist = (endPos - startPos).magnitude;
+        float fullDist = (posB.position - posA.position).magnitude;
+        float speed = fullDist / moveTime;
+        float actualMoveTime = remainingDist / speed;
 
-        while(curMoveTime < moveTime)
+        currentT = 0f;
+        while (currentT < 1f)
         {
-            curMoveTime += Time.deltaTime;
+            currentT += Time.deltaTime / actualMoveTime;
+            currentT = Mathf.Clamp01(currentT);
 
-            transform.position = Vector3.Lerp(startPos.position, endPos.position, curMoveTime / moveTime);
+            transform.position = Vector3.Lerp(startPos, endPos, currentT);
 
             yield return null;
         }
-    }
 
-    void Move2()
-    {
-        curMoveTime += Time.deltaTime;
-
-        transform.position = Vector3.Lerp(startPos.position, endPos.position, curMoveTime / moveTime);
-
-        if(curMoveTime >= moveTime)
-        {
-            applyMove = false;
-        }
+        transform.position = endPos;
     }
 }
